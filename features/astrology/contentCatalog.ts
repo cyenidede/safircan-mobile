@@ -1,0 +1,33 @@
+export const freeChartContent = [
+  'Doğum haritası çarkı',
+  'Güneş',
+  'Ay',
+  'Yükselen',
+  'Merkür',
+  'Venüs',
+  'Mars',
+  'Kısa temel yorumlar',
+] as const;
+
+export const premiumChartContent = [
+  'Jüpiter',
+  'Satürn',
+  'Uranüs',
+  'Neptün',
+  'Plüton',
+  '12 Ev bilgileri ve yorumları',
+  'Açılar ve yorumları',
+  'MC / IC',
+  'Ay Düğümleri',
+  'Chiron',
+  'Lilith',
+  'Vertex',
+  'Derin kişilik analizi',
+  'Aşk ve ilişki analizi',
+  'Kariyer',
+  'Para',
+  'Karmik analiz',
+  'Gelişmiş transitler',
+  '1 yıllık öngörü',
+  'Gelişmiş sinastri',
+] as const;
