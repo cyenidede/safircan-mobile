@@ -7,25 +7,25 @@ import { colors } from '@/constants/theme';
 import { PREMIUM_PRODUCTS } from '@/constants/products';
 
 const topics = [
-  { id: 'ascendant', title: 'Yükselen Burç' },
-  { id: 'moon', title: 'Ay Burcu' },
-  { id: 'venus', title: 'Venüs Burcu' },
-  { id: 'compatibility', title: 'Burç Uyumu' },
-  { id: 'synastry', title: PREMIUM_PRODUCTS.synastry.title, meta: `Premium · ${PREMIUM_PRODUCTS.synastry.prototypePrice}`, entitlement: 'synastry' as const },
-  { id: 'transits', title: 'Günlük Transitler' },
-  { id: 'moon-calendar', title: 'Ay Takvimi' },
+  { id: 'ascendant', title: 'Yükselen Burç', route: '/rising-sign' as Href },
+  { id: 'moon', title: 'Ay Burcu', route: '/moon-sign' as Href },
+  { id: 'venus', title: 'Venüs Burcu', route: '/venus-sign' as Href },
+  { id: 'compatibility', title: 'Burç Uyumu', route: '/zodiac-compatibility' as Href },
+  { id: 'synastry', title: PREMIUM_PRODUCTS.synastry.title, meta: `Premium · ${PREMIUM_PRODUCTS.synastry.prototypePrice}`, entitlement: 'synastry' as const, route: '/synastry' as Href },
+  { id: 'transits', title: 'Günlük Transitler', route: '/daily-transits' as Href },
+  { id: 'moon-calendar', title: 'Ay Takvimi', route: '/moon-calendar' as Href },
 ] as const;
 
 export default function DiscoverScreen() {
   return <Screen>
     <SectionHeader eyebrow="KEŞFET" title="Astrolojiyi anlaşılır kıl" description="Doğum haritanı oluşturan temel kavramları keşfet." />
     {topics.map((topic) => {
-      const isSynastry = topic.id === 'synastry';
+      const isEnabled = 'route' in topic;
       return <Pressable
-        accessibilityRole={isSynastry ? 'button' : undefined}
-        disabled={!isSynastry}
+        accessibilityRole={isEnabled ? 'button' : undefined}
+        disabled={!isEnabled}
         key={topic.id}
-        onPress={() => router.push('/synastry' as Href)}
+        onPress={() => { if (isEnabled) router.push(topic.route); }}
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
       >
         <View style={styles.copy}>

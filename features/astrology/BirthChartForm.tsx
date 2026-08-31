@@ -1,13 +1,13 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { colors, layout } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useAstrologyChart } from './AstrologyChartProvider';
-import { getAuthenticatedBirthProfile } from './api/birth-profile';
 import { createNatalChart } from './api/natal-chart';
+import { resolveCurrentBirthProfile, saveCurrentBirthInput } from './birthInputStorage';
 import type { BirthChartFormErrors, BirthChartFormValues } from './types';
 import { validateBirthChart } from './validation';
 import { getDateOnlySunSign } from './sunSign';
@@ -18,6 +18,8 @@ type PickerMode = 'date' | 'time' | null;
 export function BirthChartForm() {
   const { setRequest, setResult } = useAstrologyChart();
   const { session } = useAuth();
+  const params = useLocalSearchParams<{ returnTo?: string }>();
+  const returnToDaily = params.returnTo === '/daily-transits';
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<BirthChartFormErrors>({});
   const [picker, setPicker] = useState<PickerMode>(null);
@@ -27,15 +29,14 @@ export function BirthChartForm() {
   const userEdited = useRef(false);
 
   useEffect(() => {
-    if (!session?.access_token) return;
     let active = true;
-    void getAuthenticatedBirthProfile(session.access_token).then((profile) => {
-      if (!active || userEdited.current || !profile || profile.birth_time_source !== 'rectification' || profile.birth_time_unknown || !profile.birth_time) return;
+    void resolveCurrentBirthProfile(session?.access_token).then((profile) => {
+      if (!active || userEdited.current || !profile) return;
       const birthDate = parseDate(profile.birth_date);
-      const birthTime = parseTime(profile.birth_time);
-      if (!birthDate || !birthTime) return;
-      setValues({ firstName: profile.first_name, lastName: profile.last_name, birthDate, birthTime, birthPlace: profile.birth_place, unknownBirthTime: false });
-      setRectificationPrefill(true);
+      const birthTime = profile.birth_time ? parseTime(profile.birth_time) : null;
+      if (!birthDate || (!profile.birth_time_unknown && !birthTime)) return;
+      setValues({ firstName: profile.first_name ?? '', lastName: profile.last_name ?? '', birthDate, birthTime, birthPlace: profile.birth_place, unknownBirthTime: profile.birth_time_unknown });
+      setRectificationPrefill(profile.birth_time_source === 'rectification');
     }).catch(() => undefined);
     return () => { active = false; };
   }, [session?.access_token]);
@@ -72,7 +73,8 @@ export function BirthChartForm() {
           sun: sun.status === 'known' ? { sign: sun.sign } : null,
           requiresBirthTime: sun.status === 'time-required',
         });
-        router.push('/chart-result');
+        await saveCurrentBirthInput({ birth_date: formatDate(values.birthDate), birth_time: null, birth_time_unknown: true, birthTimeKnown: false, birth_place: values.birthPlace.trim() }).catch(() => undefined);
+        router.push(returnToDaily ? '/daily-transits' : '/chart-result');
         return;
       }
 
@@ -84,9 +86,10 @@ export function BirthChartForm() {
         birth_place: values.birthPlace.trim(),
       };
       const result = await createNatalChart(request);
+      await saveCurrentBirthInput(request).catch(() => undefined);
       setRequest(request);
       setResult(result);
-      router.push('/chart-result');
+      router.push(returnToDaily ? '/daily-transits' : '/chart-result');
     } catch (error) {
       setSubmitError(error instanceof Error && error.message === 'place'
         ? 'Doğum yerini bulamadık. Şehir ve ülke adıyla tekrar dene.'

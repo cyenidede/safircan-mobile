@@ -16,6 +16,12 @@ export default function RootLayout() {
     <Stack.Screen name="full-chart" options={{ title: 'Tam Doğum Haritan', ...authHeader }} />
     <Stack.Screen name="annual-forecast" options={{ title: '12 Aylık Öngörün', ...authHeader }} />
     <Stack.Screen name="synastry" options={{ title: 'Sinastri', ...authHeader }} />
+    <Stack.Screen name="rising-sign" options={{ title: 'Yükselen Burç', ...authHeader }} />
+    <Stack.Screen name="moon-sign" options={{ title: 'Ay Burcu', ...authHeader }} />
+    <Stack.Screen name="venus-sign" options={{ title: 'Venüs Burcu', ...authHeader }} />
+    <Stack.Screen name="zodiac-compatibility" options={{ title: 'Burç Uyumu', ...authHeader }} />
+    <Stack.Screen name="daily-transits" options={{ title: 'Günlük Transitler', ...authHeader }} />
+    <Stack.Screen name="moon-calendar" options={{ title: 'Ay Takvimi', ...authHeader }} />
     {__DEV__ ? <Stack.Screen name="premium-preview" options={{ title: 'Premium Önizleme', ...authHeader }} /> : null}
     <Stack.Screen name="premium" options={{ title: 'Safir Can Premium', ...authHeader }} />
     <Stack.Screen name="rectification" options={{ title: 'Doğum Saati', ...authHeader }} />

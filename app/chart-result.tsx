@@ -9,11 +9,10 @@ import { colors } from '@/constants/theme';
 import { useAstrologyChart } from '@/features/astrology/AstrologyChartProvider';
 import type { AstrologyChartResult, FreeNatalPlanet, SunOnlyChartResult } from '@/features/astrology/api/types';
 import { getPlacementComment, type FreePlacementKey } from '@/features/astrology/placementComments';
+import { localizeZodiacSign } from '@/features/astrology/zodiac';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { LockedSection } from '@/features/premium';
 import { useEntitlements } from '@/features/premium/EntitlementProvider';
-
-const signNames: Record<string, string> = { Aries: 'Koç', Taurus: 'Boğa', Gemini: 'İkizler', Cancer: 'Yengeç', Leo: 'Aslan', Virgo: 'Başak', Libra: 'Terazi', Scorpio: 'Akrep', Sagittarius: 'Yay', Capricorn: 'Oğlak', Aquarius: 'Kova', Pisces: 'Balık' };
 
 const premiumItems = [
   ['12 Aylık Yıllık Öngörün', 'Önündeki 12 ayın öne çıkan fırsat ve dönüşüm temalarını keşfet.'],
@@ -49,7 +48,7 @@ export default function ChartResultScreen() {
   return <Screen>
     <SectionHeader eyebrow="ÜCRETSİZ HARİTAN" title={resultTitle} description="Doğduğunda gökyüzündeki izler." />
     {result.warning ? <Text style={styles.warning}>{result.warning}</Text> : null}
-    <View style={styles.placements}>{placements.map(([key, label, planet]) => <View key={key} style={styles.placement}><View style={styles.placementTop}><View style={styles.placementNameRow}><Text style={styles.label}>{label}</Text><Text style={styles.separator}> — </Text><Text numberOfLines={1} style={styles.sign}>{planet ? signNames[planet.sign] ?? planet.sign : 'Hesaplanamadı'}</Text></View>{planet ? <Text style={styles.degree}>{formatDegree(planet.degree)}</Text> : null}</View>{planet ? <Text numberOfLines={2} style={styles.comment}>{getPlacementComment(key, planet.sign)}</Text> : <Text numberOfLines={2} style={styles.comment}>Doğum saati bilinmediğinde bu yerleşim güvenilir biçimde hesaplanamaz.</Text>}</View>)}</View>
+    <View style={styles.placements}>{placements.map(([key, label, planet]) => <View key={key} style={styles.placement}><View style={styles.placementTop}><View style={styles.placementNameRow}><Text style={styles.label}>{label}</Text><Text style={styles.separator}> — </Text><Text numberOfLines={1} style={styles.sign}>{planet ? localizeZodiacSign(planet.sign) : 'Hesaplanamadı'}</Text></View>{planet ? <Text style={styles.degree}>{formatDegree(planet.degree)}</Text> : null}</View>{planet ? <Text numberOfLines={2} style={styles.comment}>{getPlacementComment(key, planet.sign)}</Text> : <Text numberOfLines={2} style={styles.comment}>Doğum saati bilinmediğinde bu yerleşim güvenilir biçimde hesaplanamaz.</Text>}</View>)}</View>
     {hasEntitlement('full_chart') ? <Pressable accessibilityRole="button" onPress={() => router.push('/full-chart')} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>TAM DOĞUM HARİTAMI GÖR</Text></Pressable> : hasEntitlement('annual_forecast') ? <Pressable accessibilityRole="button" onPress={() => router.push('/annual-forecast')} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>12 AYLIK ÖNGÖRÜMÜ GÖR</Text></Pressable> : <View style={styles.premiumSection}>
       <Text style={styles.premiumTitle}>Haritanda Daha Fazlası Var</Text>
       <Text style={styles.premiumDescription}>İlişkilerin, kariyer yönün, para potansiyelin, karmik derslerin ve önündeki 12 aylık dönem haritanda daha derin katmanlarda saklı.</Text>
@@ -78,7 +77,7 @@ function SunOnlyResult({ result }: { result: SunOnlyChartResult }) {
           <View style={styles.placementNameRow}>
             <Text style={styles.label}>Güneş</Text>
             <Text style={styles.separator}> — </Text>
-            <Text numberOfLines={1} style={styles.sign}>{sign ? signNames[sign] ?? sign : 'Doğum saati gerekli'}</Text>
+            <Text numberOfLines={1} style={styles.sign}>{sign ? localizeZodiacSign(sign) : 'Doğum saati gerekli'}</Text>
           </View>
         </View>
         {sign

@@ -39,7 +39,7 @@ export type NatalChartRequest = {
   birth_date: string;
   birth_time: string | null;
   birth_time_unknown: boolean;
-  birthTimeKnown: true;
+  birthTimeKnown: boolean;
   birth_place: string;
 };
 
