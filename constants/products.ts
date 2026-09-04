@@ -1,4 +1,4 @@
-export type PremiumProductId = 'annual_forecast' | 'full_chart' | 'birth_time_rectification' | 'synastry';
+export type PremiumProductId = 'annual_forecast' | 'full_chart' | 'birth_time_rectification' | 'synastry' | 'messaging_subscription';
 
 export type PremiumProduct = {
   id: PremiumProductId;
@@ -72,6 +72,14 @@ export const PREMIUM_PRODUCTS: Record<PremiumProductId, PremiumProduct> = {
     description: 'İki doğum haritasının ilişki dinamiklerini ayrıntılı olarak incele.',
     ctaLabel: 'PROFESYONEL SİNASTRİYİ AÇ',
     features: [],
+  },
+  messaging_subscription: {
+    id: 'messaging_subscription',
+    title: 'Mesajlaşma Üyeliği',
+    prototypePrice: '250 TL / ay',
+    description: 'Ruh Eşi ve Burç Grupları alanlarında sınırsız mesajlaş.',
+    ctaLabel: 'SINIRSIZ MESAJLAŞMAYA GEÇ',
+    features: ['Sınırsız özel mesajlaşma', 'Burç grubunda sınırsız mesajlaşma'],
   },
 };
 
