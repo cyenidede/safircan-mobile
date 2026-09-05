@@ -5,6 +5,7 @@ import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/theme';
+import { useLocale } from '@/localization';
 
 type TabId = 'home' | 'chart' | 'ask' | 'discover' | 'profile';
 type Tab = { id: TabId; label: string; href: Href; icon: keyof typeof Ionicons.glyphMap; activeIcon: keyof typeof Ionicons.glyphMap };
@@ -20,7 +21,7 @@ const tabs: Tab[] = [
 const hiddenRoutes = new Set(['/sign-in', '/sign-up', '/rectification-success', '/rectification-upsell']);
 const chartRoutes = ['/chart', '/birth-chart', '/chart-result', '/full-chart', '/annual-forecast', '/premium', '/premium-preview', '/rectification', '/rectification-form', '/rectification-review', '/rectification-result'];
 const discoverRoutes = ['/discover', '/rising-sign', '/moon-sign', '/venus-sign', '/zodiac-compatibility', '/synastry'];
-const profileRoutes = ['/profile', '/community', '/soulmate', '/private-chat', '/zodiac-group', '/social-profile'];
+const profileRoutes = ['/profile', '/settings', '/community', '/soulmate', '/private-chat', '/zodiac-group', '/social-profile'];
 
 function activeTab(pathname: string): TabId {
   if (profileRoutes.some((path) => pathname === path || pathname.startsWith(`${path}/`))) return 'profile';
@@ -31,6 +32,7 @@ function activeTab(pathname: string): TabId {
 }
 
 export function GlobalTabBar() {
+  const { messages } = useLocale();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -50,9 +52,10 @@ export function GlobalTabBar() {
   return <View accessibilityRole="tablist" style={[styles.bar, { height: 62 + insets.bottom, paddingBottom: insets.bottom }]}>
     {tabs.map((tab) => {
       const selected = tab.id === active;
-      return <Pressable accessibilityLabel={tab.label} accessibilityRole="tab" accessibilityState={{ selected }} hitSlop={4} key={tab.id} onPress={() => navigate(tab)} style={({ pressed }) => [styles.item, tab.id === 'ask' && styles.askItem, pressed && styles.pressed]}>
+      const label = messages.nav[tab.id];
+      return <Pressable accessibilityLabel={label} accessibilityRole="tab" accessibilityState={{ selected }} hitSlop={4} key={tab.id} onPress={() => navigate(tab)} style={({ pressed }) => [styles.item, tab.id === 'ask' && styles.askItem, pressed && styles.pressed]}>
         <View style={tab.id === 'ask' ? [styles.askIcon, selected && styles.askIconActive] : undefined}><Ionicons color={tab.id === 'ask' ? (selected ? colors.white : colors.sapphire) : selected ? colors.sapphire : colors.muted} name={selected ? tab.activeIcon : tab.icon} size={tab.id === 'ask' ? 25 : 24} /></View>
-        <Text style={[styles.label, selected && styles.activeLabel]}>{tab.label}</Text>
+        <Text style={[styles.label, selected && styles.activeLabel]}>{label}</Text>
       </Pressable>;
     })}
   </View>;

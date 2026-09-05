@@ -1,7 +1,9 @@
 import { AuthForm } from '@/components/AuthForm';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
+import { useLocale } from '@/localization';
 
 export default function SignInScreen() {
-  return <Screen><SectionHeader eyebrow="TEKRAR HOŞ GELDİN" title="Hesabına giriş yap" description="Kaldığın yerden devam etmek için bilgilerini gir." /><AuthForm mode="sign-in" /></Screen>;
+  const { locale } = useLocale();
+  return <Screen><SectionHeader eyebrow={locale==='tr'?'TEKRAR HOŞ GELDİN':'WELCOME BACK'} title={locale==='tr'?'Hesabına giriş yap':'Sign in to your account'} description={locale==='tr'?'Kaldığın yerden devam etmek için bilgilerini gir.':'Enter your details to continue.'} /><AuthForm mode="sign-in" /></Screen>;
 }

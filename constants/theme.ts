@@ -11,6 +11,8 @@ export const colors = {
   gold: '#A4772B',
 } as const;
 
+export const darkColors = { ...colors, background: '#0D1424', surface: '#151F32', navy: '#F4F7FC', muted: '#AEB8CA', border: '#2B3950', sapphireSoft: '#1D3553' } as const;
+
 export const layout = {
   screenPadding: 20,
   radius: 20,

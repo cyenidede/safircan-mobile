@@ -9,10 +9,11 @@ import { IAPProvider } from '@/features/iap';
 import { EntitlementProvider } from '@/features/premium/EntitlementProvider';
 import { GlobalTabBar } from '@/components/GlobalTabBar';
 import { SocialNotificationProvider } from '@/features/social/SocialNotificationProvider';
+import { LocaleProvider } from '@/localization';
 
 export default function RootLayout() {
   const authHeader = { headerBackTitle: 'Geri', headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.navy } as const;
-  return <SafeAreaProvider><AuthProvider><SocialNotificationProvider><EntitlementProvider><IAPProvider><AstrologyChartProvider><StatusBar style="dark" /><View style={styles.shell}><View style={styles.content}><Stack screenOptions={{ contentStyle: { backgroundColor: colors.background }, headerShadowVisible: false }}>
+  return <SafeAreaProvider><AuthProvider><LocaleProvider><SocialNotificationProvider><EntitlementProvider><IAPProvider><AstrologyChartProvider><StatusBar style="dark" /><View style={styles.shell}><View style={styles.content}><Stack screenOptions={{ contentStyle: { backgroundColor: colors.background }, headerShadowVisible: false }}>
     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     <Stack.Screen name="birth-chart" options={{ title: 'Doğum Haritam', ...authHeader }} />
     <Stack.Screen name="chart-result" options={{ title: 'Harita Sonucum', ...authHeader }} />
@@ -43,7 +44,8 @@ export default function RootLayout() {
     <Stack.Screen name="rectification-upsell" options={{ headerShown: false }} />
     <Stack.Screen name="sign-up" options={{ title: 'Üye Ol', ...authHeader }} />
     <Stack.Screen name="sign-in" options={{ title: 'Giriş Yap', ...authHeader }} />
-  </Stack></View><GlobalTabBar /></View></AstrologyChartProvider></IAPProvider></EntitlementProvider></SocialNotificationProvider></AuthProvider></SafeAreaProvider>;
+    <Stack.Screen name="settings" options={{ title: 'Ayarlar', ...authHeader }} />
+  </Stack></View><GlobalTabBar /></View></AstrologyChartProvider></IAPProvider></EntitlementProvider></SocialNotificationProvider></LocaleProvider></AuthProvider></SafeAreaProvider>;
 }
 
 const styles = StyleSheet.create({ shell: { backgroundColor: colors.background, flex: 1 }, content: { flex: 1 } });
