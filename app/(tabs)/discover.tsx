@@ -5,20 +5,21 @@ import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { colors } from '@/constants/theme';
 import { PREMIUM_PRODUCTS } from '@/constants/products';
-
-const topics = [
-  { id: 'ascendant', title: 'Yükselen Burç', route: '/rising-sign' as Href },
-  { id: 'moon', title: 'Ay Burcu', route: '/moon-sign' as Href },
-  { id: 'venus', title: 'Venüs Burcu', route: '/venus-sign' as Href },
-  { id: 'compatibility', title: 'Burç Uyumu', route: '/zodiac-compatibility' as Href },
-  { id: 'synastry', title: PREMIUM_PRODUCTS.synastry.title, meta: `Premium · ${PREMIUM_PRODUCTS.synastry.prototypePrice}`, entitlement: 'synastry' as const, route: '/synastry' as Href },
-  { id: 'transits', title: 'Günlük Transitler', route: '/daily-transits' as Href },
-  { id: 'moon-calendar', title: 'Ay Takvimi', route: '/moon-calendar' as Href },
-] as const;
+import { useLocale, usePalette } from '@/localization';
 
 export default function DiscoverScreen() {
+  const { messages } = useLocale(); const palette = usePalette(); const m = messages.discover;
+  const topics = [
+    { id: 'ascendant', title: m.ascendant, route: '/rising-sign' as Href },
+    { id: 'moon', title: m.moon, route: '/moon-sign' as Href },
+    { id: 'venus', title: m.venus, route: '/venus-sign' as Href },
+    { id: 'compatibility', title: m.compatibility, route: '/zodiac-compatibility' as Href },
+    { id: 'synastry', title: m.synastry, meta: `${m.premium} · ${PREMIUM_PRODUCTS.synastry.prototypePrice}`, route: '/synastry' as Href },
+    { id: 'transits', title: m.transits, route: '/daily-transits' as Href },
+    { id: 'moon-calendar', title: m.moonCalendar, route: '/moon-calendar' as Href },
+  ] as const;
   return <Screen>
-    <SectionHeader eyebrow="KEŞFET" title="Astrolojiyi anlaşılır kıl" description="Doğum haritanı oluşturan temel kavramları keşfet." />
+    <SectionHeader eyebrow={m.eyebrow} title={m.title} description={m.description} />
     {topics.map((topic) => {
       const isEnabled = 'route' in topic;
       return <Pressable
@@ -26,10 +27,10 @@ export default function DiscoverScreen() {
         disabled={!isEnabled}
         key={topic.id}
         onPress={() => { if (isEnabled) router.push(topic.route); }}
-        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        style={({ pressed }) => [styles.row, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.rowPressed]}
       >
         <View style={styles.copy}>
-          <Text style={styles.title}>{topic.title}</Text>
+          <Text style={[styles.title, { color: palette.navy }]}>{topic.title}</Text>
           {'meta' in topic ? <Text style={styles.meta}>{topic.meta}</Text> : null}
         </View>
         <Text style={styles.arrow}>›</Text>

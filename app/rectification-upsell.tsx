@@ -5,19 +5,24 @@ import { Screen } from '@/components/Screen';
 import { PREMIUM_PRODUCTS } from '@/constants/products';
 import { colors } from '@/constants/theme';
 import { useIAP } from '@/features/iap';
+import { useLocale, usePalette } from '@/localization';
+import { useRectificationText } from '@/features/rectification/presentation';
 
 export default function RectificationUpsellScreen() {
+  const palette = usePalette();
+  const { messages } = useLocale();
+  const t = useRectificationText();
   const product = PREMIUM_PRODUCTS.full_chart;
   const { displayPrice } = useIAP();
   const price = displayPrice(product.id);
   return <Screen>
     <View style={styles.content}>
-      <Text style={styles.eyebrow}>DOĞUM SAATİN KAYDEDİLDİ</Text>
-      <Text style={styles.title}>Artık Tam Doğum Haritanı Oluşturabiliriz</Text>
-      <Text style={styles.description}>Doğum saatin netleştiğine göre yükselen burcundan 12 evine, gezegen açılarından ilişki ve kariyer göstergelerine kadar haritanın tüm derin katmanlarını açabilirsin.</Text>
-      <View style={styles.priceCard}><Text style={styles.packageTitle}>{product.title}</Text>{price ? <Text style={styles.price}>{price}</Text> : null}<Text style={styles.packageText}>Tüm Premium natal analizleri ve 12 aylık yıllık öngörü dahildir.</Text></View>
-      <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/premium', params: { selectedFeature: 'Tam doğum haritası ve 12 aylık öngörü' } })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{price ? `${product.ctaLabel} — ${price}` : product.ctaLabel}</Text></Pressable>
-      <Text style={styles.note}>Doğum saati rektifikasyonu ve tam harita iki ayrı satın almadır.</Text>
+      <Text style={[styles.eyebrow,{color:palette.sapphire}]}>{t('DOĞUM SAATİN KAYDEDİLDİ')}</Text>
+      <Text style={[styles.title,{color:palette.navy}]}>{t('Artık Tam Doğum Haritanı Oluşturabiliriz')}</Text>
+      <Text style={[styles.description,{color:palette.muted}]}>{t('Doğum saatin netleştiğine göre yükselen burcundan 12 evine, gezegen açılarından ilişki ve kariyer göstergelerine kadar haritanın tüm derin katmanlarını açabilirsin.')}</Text>
+      <View style={[styles.priceCard,{backgroundColor:palette.surface,borderColor:palette.gold}]}><Text style={[styles.packageTitle,{color:palette.navy}]}>{messages.premiumScreen.fullTitle}</Text>{price ? <Text style={[styles.price,{color:palette.gold}]}>{price}</Text> : null}<Text style={[styles.packageText,{color:palette.muted}]}>{t('Tüm Premium natal analizleri ve 12 aylık yıllık öngörü dahildir.')}</Text></View>
+      <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/premium', params: { selectedFeature: 'Tam doğum haritası ve 12 aylık öngörü' } })} style={({ pressed }) => [styles.button,{backgroundColor:palette.sapphire}, pressed && styles.pressed]}><Text style={styles.buttonText}>{price ? `${messages.premiumScreen.fullCta} — ${price}` : messages.premiumScreen.fullCta}</Text></Pressable>
+      <Text style={[styles.note,{color:palette.muted}]}>{t('Doğum saati rektifikasyonu ve tam harita iki ayrı satın almadır.')}</Text>
     </View>
   </Screen>;
 }

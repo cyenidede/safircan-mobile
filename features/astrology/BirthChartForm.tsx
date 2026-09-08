@@ -7,15 +7,20 @@ import { colors, layout } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useAstrologyChart } from './AstrologyChartProvider';
 import { createNatalChart } from './api/natal-chart';
+import { saveAuthenticatedBirthProfile } from './api/birth-profile';
 import { resolveCurrentBirthProfile, saveCurrentBirthInput } from './birthInputStorage';
 import type { BirthChartFormErrors, BirthChartFormValues } from './types';
 import { validateBirthChart } from './validation';
 import { getDateOnlySunSign } from './sunSign';
+import { formatDate as formatLocalizedDate, useLocale, usePalette } from '@/localization';
 
 const initialValues: BirthChartFormValues = { firstName: '', lastName: '', birthDate: null, birthTime: null, birthPlace: '', unknownBirthTime: false };
 type PickerMode = 'date' | 'time' | null;
 
 export function BirthChartForm() {
+  const { locale, messages } = useLocale();
+  const palette = usePalette();
+  const m = messages.birthForm;
   const { setRequest, setResult } = useAstrologyChart();
   const { session } = useAuth();
   const params = useLocalSearchParams<{ returnTo?: string }>();
@@ -55,61 +60,79 @@ export function BirthChartForm() {
 
   const submit = async () => {
     if (submitting) return;
-    const nextErrors = validateBirthChart(values);
+    const validation = validateBirthChart(values);
+    const nextErrors: BirthChartFormErrors = {};
+    if (validation.firstName) nextErrors.firstName = m.firstNameError;
+    if (validation.lastName) nextErrors.lastName = m.lastNameError;
+    if (validation.birthDate) nextErrors.birthDate = m.dateError;
+    if (validation.birthTime) nextErrors.birthTime = m.timeError;
+    if (validation.birthPlace) nextErrors.birthPlace = m.placeRequired;
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || !values.birthDate) return;
 
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const birthDate = formatDate(values.birthDate);
+      const persistAuthenticatedProfile = async (birthTime: string | null, birthTimeUnknown: boolean) => {
+        if (!session?.access_token) return;
+        await saveAuthenticatedBirthProfile(session.access_token, {
+          first_name: values.firstName.trim(), last_name: values.lastName.trim(), birth_date: birthDate,
+          birth_time: birthTime, birth_time_unknown: birthTimeUnknown, birth_place: values.birthPlace.trim(),
+        });
+      };
       if (values.unknownBirthTime) {
         const sun = getDateOnlySunSign(values.birthDate);
         setResult({
           success: true,
           mode: 'sun-only',
           birthTimeKnown: false,
-          birthDate: formatDate(values.birthDate),
+          birthDate,
           birthPlace: values.birthPlace.trim(),
           sun: sun.status === 'known' ? { sign: sun.sign } : null,
           requiresBirthTime: sun.status === 'time-required',
         });
-        await saveCurrentBirthInput({ birth_date: formatDate(values.birthDate), birth_time: null, birth_time_unknown: true, birthTimeKnown: false, birth_place: values.birthPlace.trim() }).catch(() => undefined);
-        router.push(returnToDaily ? '/daily-transits' : '/chart-result');
+        await persistAuthenticatedProfile(null, true);
+        await saveCurrentBirthInput({ birth_date: birthDate, birth_time: null, birth_time_unknown: true, birthTimeKnown: false, birth_place: values.birthPlace.trim() });
+        router.replace(returnToDaily ? '/daily-transits' : '/chart-result');
         return;
       }
 
       const request = {
-        birth_date: formatDate(values.birthDate),
+        birth_date: birthDate,
         birth_time: values.birthTime ? formatTime(values.birthTime) : null,
         birth_time_unknown: false,
         birthTimeKnown: true as const,
         birth_place: values.birthPlace.trim(),
       };
       const result = await createNatalChart(request);
-      await saveCurrentBirthInput(request).catch(() => undefined);
+      await persistAuthenticatedProfile(request.birth_time, false);
+      await saveCurrentBirthInput(request);
       setRequest(request);
       setResult(result);
-      router.push(returnToDaily ? '/daily-transits' : '/chart-result');
+      router.replace(returnToDaily ? '/daily-transits' : '/chart-result');
     } catch (error) {
-      setSubmitError(error instanceof Error && error.message === 'place'
-        ? 'Doğum yerini bulamadık. Şehir ve ülke adıyla tekrar dene.'
-        : 'Şu anda haritanı oluşturamıyoruz. Lütfen biraz sonra tekrar dene.');
+      setSubmitError(error instanceof Error && error.message === 'birth-profile-save'
+        ? m.saveError
+        : error instanceof Error && error.message === 'place'
+        ? m.placeError
+        : m.genericError);
     } finally {
       setSubmitting(false);
     }
   };
 
   return <View style={styles.form}>
-    <Field label="Ad" value={values.firstName} onChangeText={(text) => update('firstName', text)} error={errors.firstName} autoCapitalize="words" />
-    <Field label="Soyad" value={values.lastName} onChangeText={(text) => update('lastName', text)} error={errors.lastName} autoCapitalize="words" />
-    {rectificationPrefill ? <Text style={styles.prefillNotice}>Doğum saatin rektifikasyon sonucundan dolduruldu.</Text> : null}
-    <PickerField label="Doğum Tarihi" value={values.birthDate ? values.birthDate.toLocaleDateString('tr-TR') : 'Tarih seç'} onPress={() => setPicker('date')} error={errors.birthDate} />
-    {!values.unknownBirthTime ? <PickerField label="Doğum Saati" value={values.birthTime ? values.birthTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : 'Saat seç'} onPress={() => setPicker('time')} error={errors.birthTime} /> : null}
-    <View style={styles.switchRow}><Text style={styles.switchLabel}>Doğum saatimi bilmiyorum</Text><Switch accessibilityLabel="Doğum saatimi bilmiyorum" value={values.unknownBirthTime} onValueChange={(value) => { update('unknownBirthTime', value); if (value) update('birthTime', null); }} trackColor={{ false: colors.border, true: '#8BAFD6' }} thumbColor={values.unknownBirthTime ? colors.sapphire : colors.white} /></View>
-    <Field label="Doğum Yeri" value={values.birthPlace} onChangeText={(text) => update('birthPlace', text)} error={errors.birthPlace} placeholder="Şehir, ülke" autoCapitalize="words" />
-    {picker ? <View style={Platform.OS === 'ios' ? styles.iosPicker : undefined}><DateTimePicker value={(picker === 'date' ? values.birthDate : values.birthTime) ?? new Date()} mode={picker} display={Platform.OS === 'ios' ? 'spinner' : 'default'} maximumDate={picker === 'date' ? new Date() : undefined} locale="tr-TR" onChange={onPickerChange} />{Platform.OS === 'ios' ? <Pressable style={styles.pickerDone} onPress={() => setPicker(null)}><Text style={styles.pickerDoneText}>Tamam</Text></Pressable> : null}</View> : null}
+    <Field label={m.firstName} value={values.firstName} onChangeText={(text) => update('firstName', text)} error={errors.firstName} autoCapitalize="words" />
+    <Field label={m.lastName} value={values.lastName} onChangeText={(text) => update('lastName', text)} error={errors.lastName} autoCapitalize="words" />
+    {rectificationPrefill ? <Text style={[styles.prefillNotice, { backgroundColor: palette.sapphireSoft, color: palette.navy }]}>{m.rectificationPrefill}</Text> : null}
+    <PickerField label={m.birthDate} value={values.birthDate ? formatLocalizedDate(values.birthDate, locale) : m.selectDate} onPress={() => setPicker('date')} error={errors.birthDate} />
+    {!values.unknownBirthTime ? <PickerField label={m.birthTime} value={values.birthTime ? values.birthTime.toLocaleTimeString(locale === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : m.selectTime} onPress={() => setPicker('time')} error={errors.birthTime} /> : null}
+    <View style={[styles.switchRow, { backgroundColor: palette.surface }]}><Text style={[styles.switchLabel, { color: palette.navy }]}>{m.unknownTime}</Text><Switch accessibilityLabel={m.unknownTime} value={values.unknownBirthTime} onValueChange={(value) => { update('unknownBirthTime', value); if (value) update('birthTime', null); }} trackColor={{ false: palette.border, true: palette.sapphireSoft }} thumbColor={values.unknownBirthTime ? palette.sapphire : palette.white} /></View>
+    <Field label={m.birthPlace} value={values.birthPlace} onChangeText={(text) => update('birthPlace', text)} error={errors.birthPlace} placeholder={m.placePlaceholder} autoCapitalize="words" />
+    {picker ? <View style={[Platform.OS === 'ios' ? styles.iosPicker : undefined, { backgroundColor: palette.surface }]}><DateTimePicker value={(picker === 'date' ? values.birthDate : values.birthTime) ?? new Date()} mode={picker} display={Platform.OS === 'ios' ? 'spinner' : 'default'} maximumDate={picker === 'date' ? new Date() : undefined} locale={locale === 'tr' ? 'tr-TR' : 'en-US'} onChange={onPickerChange} />{Platform.OS === 'ios' ? <Pressable style={styles.pickerDone} onPress={() => setPicker(null)}><Text style={styles.pickerDoneText}>{m.done}</Text></Pressable> : null}</View> : null}
     {submitError ? <Text accessibilityRole="alert" style={styles.submitError}>{submitError}</Text> : null}
-    <Pressable accessibilityRole="button" disabled={submitting} onPress={() => void submit()} style={({ pressed }) => [styles.submit, (pressed || submitting) && styles.pressed]}>{submitting ? <View style={styles.loadingRow}><ActivityIndicator color={colors.white} /><Text style={styles.submitText}>Gökyüzü konumların hesaplanıyor…</Text></View> : <Text style={styles.submitText}>HARİTAMI OLUŞTUR</Text>}</Pressable>
+    <Pressable accessibilityRole="button" disabled={submitting} onPress={() => void submit()} style={({ pressed }) => [styles.submit, (pressed || submitting) && styles.pressed]}>{submitting ? <View style={styles.loadingRow}><ActivityIndicator color={colors.white} /><Text style={styles.submitText}>{m.submitting}</Text></View> : <Text style={styles.submitText}>{m.submit}</Text>}</Pressable>
   </View>;
 }
 
@@ -119,7 +142,7 @@ function parseDate(value: string) { const match = /^(\d{4})-(\d{2})-(\d{2})$/.ex
 function parseTime(value: string) { const match = /^(\d{2}):(\d{2})/.exec(value); if (!match) return null; const date = new Date(); date.setHours(Number(match[1]), Number(match[2]), 0, 0); return Number.isNaN(date.getTime()) ? null : date; }
 
 type FieldProps = React.ComponentProps<typeof TextInput> & { label: string; error?: string };
-function Field({ label, error, ...props }: FieldProps) { return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput {...props} placeholderTextColor="#8B90A0" style={[styles.input, error && styles.inputError]} />{error ? <Text style={styles.error}>{error}</Text> : null}</View>; }
-function PickerField({ label, value, onPress, error, disabled }: { label: string; value: string; onPress: () => void; error?: string; disabled?: boolean }) { return <View style={styles.field}><Text style={styles.label}>{label}</Text><Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.input, styles.pickerField, disabled && styles.disabled, error && styles.inputError]}><Text style={[styles.pickerText, disabled && styles.disabledText]}>{disabled ? 'Saat bilgisi kullanılmayacak' : value}</Text><Text style={styles.chevron}>›</Text></Pressable>{error ? <Text style={styles.error}>{error}</Text> : null}</View>; }
+function Field({ label, error, ...props }: FieldProps) { const palette=usePalette(); return <View style={styles.field}><Text style={[styles.label,{color:palette.navy}]}>{label}</Text><TextInput {...props} placeholderTextColor={palette.muted} style={[styles.input,{backgroundColor:palette.surface,borderColor:palette.border,color:palette.navy}, error && styles.inputError]} />{error ? <Text style={styles.error}>{error}</Text> : null}</View>; }
+function PickerField({ label, value, onPress, error, disabled }: { label: string; value: string; onPress: () => void; error?: string; disabled?: boolean }) { const palette=usePalette(); return <View style={styles.field}><Text style={[styles.label,{color:palette.navy}]}>{label}</Text><Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.input, styles.pickerField,{backgroundColor:palette.surface,borderColor:palette.border}, disabled && styles.disabled, error && styles.inputError]}><Text style={[styles.pickerText,{color:palette.navy}, disabled && styles.disabledText]}>{value}</Text><Text style={[styles.chevron,{color:palette.sapphire}]}>›</Text></Pressable>{error ? <Text style={styles.error}>{error}</Text> : null}</View>; }
 
 const styles = StyleSheet.create({ form: { gap: 18 }, field: { gap: 8 }, label: { color: colors.navy, fontSize: 16, fontWeight: '700' }, input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 15, borderWidth: 1, color: colors.navy, fontSize: 17, minHeight: layout.controlHeight, paddingHorizontal: 16 }, inputError: { borderColor: colors.danger }, error: { color: colors.danger, fontSize: 14 }, prefillNotice: { backgroundColor: colors.sapphireSoft, borderRadius: 13, color: colors.navy, fontSize: 14, lineHeight: 20, padding: 12 }, pickerField: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, pickerText: { color: colors.navy, fontSize: 17 }, chevron: { color: colors.sapphire, fontSize: 29 }, disabled: { backgroundColor: '#EEEAE1' }, disabledText: { color: colors.muted }, switchRow: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: 15, flexDirection: 'row', justifyContent: 'space-between', minHeight: 64, paddingHorizontal: 16 }, switchLabel: { color: colors.navy, flex: 1, fontSize: 16, fontWeight: '600' }, iosPicker: { backgroundColor: colors.surface, borderRadius: 18, overflow: 'hidden', paddingBottom: 10 }, pickerDone: { alignItems: 'center', minHeight: 48, justifyContent: 'center' }, pickerDoneText: { color: colors.sapphire, fontSize: 17, fontWeight: '700' }, submit: { alignItems: 'center', backgroundColor: colors.sapphire, borderRadius: 16, justifyContent: 'center', minHeight: 58, marginTop: 4, paddingHorizontal: 12 }, submitText: { color: colors.white, fontSize: 15, fontWeight: '800', letterSpacing: 0.2 }, loadingRow: { alignItems: 'center', flexDirection: 'row', gap: 9 }, submitError: { backgroundColor: '#F8E8E8', borderRadius: 14, color: colors.danger, fontSize: 15, lineHeight: 22, padding: 14 }, pressed: { opacity: 0.65 } });

@@ -1,15 +1,15 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
+import { useLocale, usePalette } from '@/localization';
 
 export function SocialAccessState({ kind, onPress }: { kind: 'underage' | 'birth_required'; onPress: () => void }) {
   const underage = kind === 'underage';
-  return <View style={styles.card}>
-    <Text style={styles.title}>{underage ? 'Bu alan henüz senin için açık değil' : 'Doğum bilgilerini tamamlaman gerekiyor'}</Text>
-    <Text style={styles.copy}>{underage
-      ? 'Ruh Eşi, burç grupları ve özel mesajlaşma özellikleri 18 yaşını doldurduğunda kullanılabilir.'
-      : 'Bu alanı kullanabilmek için önce doğum bilgilerini tamamlaman gerekiyor.'}</Text>
-    <Pressable onPress={onPress} style={styles.button}><Text style={styles.buttonText}>{underage ? 'GERİ DÖN' : 'DOĞUM BİLGİLERİMİ TAMAMLA'}</Text></Pressable>
+  const {messages}=useLocale(); const palette=usePalette(); const m=messages.accessRequired;
+  return <View style={[styles.card,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+    <Text style={[styles.title,{color:palette.navy}]}>{underage ? m.underageTitle : m.title}</Text>
+    <Text style={[styles.copy,{color:palette.muted}]}>{underage ? m.underageDescription : m.description}</Text>
+    <Pressable onPress={onPress} style={styles.button}><Text style={styles.buttonText}>{underage ? m.back : m.action}</Text></Pressable>
   </View>;
 }
 

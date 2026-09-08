@@ -11,6 +11,7 @@ import {
 } from '@/constants/products';
 import { colors } from '@/constants/theme';
 import { useIAP } from '@/features/iap';
+import { useLocale, usePalette } from '@/localization';
 
 function ProductCard({
   product,
@@ -23,23 +24,24 @@ function ProductCard({
   onSelect: () => void;
   displayPrice: string | null;
 }) {
+  const palette=usePalette();
   return (
-    <View style={[styles.productCard, highlighted && styles.highlightedCard]}>
+    <View style={[styles.productCard,{backgroundColor:palette.surface,borderColor:highlighted?palette.gold:palette.border},highlighted && styles.highlightedCard]}>
       {product.badge ? (
         <View style={styles.packageBadge}>
           <Text style={styles.packageBadgeText}>{product.badge}</Text>
         </View>
       ) : null}
       <View style={styles.productHeading}>
-        <Text style={styles.productTitle}>{product.title}</Text>
-        {displayPrice ? <Text style={[styles.price, highlighted && styles.highlightedPrice]}>{displayPrice}</Text> : null}
+        <Text style={[styles.productTitle,{color:palette.navy}]}>{product.title}</Text>
+        {displayPrice ? <Text style={[styles.price,{color:highlighted?palette.gold:palette.sapphire}]}>{displayPrice}</Text> : null}
       </View>
-      <Text style={styles.productDescription}>{product.description}</Text>
+      <Text style={[styles.productDescription,{color:palette.muted}]}>{product.description}</Text>
       <View style={styles.featureList}>
         {product.features.map((feature) => (
           <View key={feature} style={styles.featureRow}>
-            <Ionicons name="checkmark-circle" size={19} color={highlighted ? colors.gold : colors.sapphire} />
-            <Text style={styles.featureText}>{feature}</Text>
+            <Ionicons name="checkmark-circle" size={19} color={highlighted ? palette.gold : palette.sapphire} />
+            <Text style={[styles.featureText,{color:palette.navy}]}>{feature}</Text>
           </View>
         ))}
       </View>
@@ -58,6 +60,7 @@ function ProductCard({
 }
 
 export default function PremiumScreen() {
+  const { messages }=useLocale(); const palette=usePalette(); const m=messages.premiumScreen;
   const router = useRouter();
   const params = useLocalSearchParams<{ selectedFeature?: string | string[] }>();
   const [notice, setNotice] = useState('');
@@ -67,27 +70,32 @@ export default function PremiumScreen() {
     : params.selectedFeature;
 
   const selectedFeatureNote = selectedFeature
-    ? `${selectedFeature}, Tüm Haritamı Aç paketine dahildir.`
+    ? m.included.replace('{feature}',selectedFeature)
     : null;
+  const localizedProduct=(product:PremiumProduct):PremiumProduct=>{
+    const prefix=product.id==='annual_forecast'?'annual':product.id==='full_chart'?'full':product.id==='synastry'?'synastry':product.id==='messaging_subscription'?'messaging':'rectification';
+    const title=m[`${prefix}Title` as keyof typeof m] as string; const description=m[`${prefix}Description` as keyof typeof m] as string; const ctaLabel=m[`${prefix}Cta` as keyof typeof m] as string;
+    const featuresKey=`${prefix}Features` as keyof typeof m; const features=featuresKey in m?(m[featuresKey] as string).split('|'):product.features;
+    const badge=prefix==='full'?m.fullBadge:product.badge;
+    return {...product,title,description,ctaLabel,features,badge};
+  };
 
   return (
     <Screen>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>SAFİR CAN PREMIUM</Text>
-        <Text style={styles.heroTitle}>Haritanın Derin Katmanlarını Keşfet</Text>
-        <Text style={styles.heroDescription}>
-          Doğum haritanın ilişkilerden kariyere, para potansiyelinden karmik göstergelere kadar daha derin katmanlarını aç.
-        </Text>
+        <Text style={[styles.eyebrow,{color:palette.sapphire}]}>{m.eyebrow}</Text>
+        <Text style={[styles.heroTitle,{color:palette.navy}]}>{m.title}</Text>
+        <Text style={[styles.heroDescription,{color:palette.muted}]}>{m.description}</Text>
         <View style={styles.trustRow}>
-          <Ionicons name="shield-checkmark-outline" size={18} color={colors.gold} />
-          <Text style={styles.trustText}>Tek seferlik satın alma • Abonelik değil</Text>
+          <Ionicons name="shield-checkmark-outline" size={18} color={palette.gold} />
+          <Text style={[styles.trustText,{color:palette.navy}]}>{m.trust}</Text>
         </View>
       </View>
 
       {selectedFeatureNote ? (
-        <View style={styles.contextNote}>
-          <Ionicons name="sparkles-outline" size={20} color={colors.sapphire} />
-          <Text style={styles.contextText}>{selectedFeatureNote}</Text>
+        <View style={[styles.contextNote,{backgroundColor:palette.sapphireSoft}]}>
+          <Ionicons name="sparkles-outline" size={20} color={palette.sapphire} />
+          <Text style={[styles.contextText,{color:palette.navy}]}>{selectedFeatureNote}</Text>
         </View>
       ) : null}
 
@@ -97,44 +105,40 @@ export default function PremiumScreen() {
           return (
             <ProductCard
               key={product.id}
-              product={product}
+              product={localizedProduct(product)}
               highlighted={product.id === 'full_chart'}
               displayPrice={displayPrice(product.id)}
-              onSelect={() => { void purchase(product.id).then((result) => { if (!result.ok) setNotice(result.message); }); }}
+              onSelect={() => { void purchase(product.id).then((result) => { if (!result.ok) setNotice(m.purchaseError); }); }}
             />
           );
         })}
       </View>
 
-      <View style={styles.serviceCard}>
+      <View style={[styles.serviceCard,{backgroundColor:palette.surface,borderColor:palette.border}]}>
         <View style={styles.serviceTop}>
-          <View style={styles.serviceIcon}><Ionicons name="time-outline" size={23} color={colors.gold} /></View>
-          <Text style={styles.serviceLabel}>AYRI HİZMET</Text>
+          <View style={[styles.serviceIcon,{backgroundColor:palette.sapphireSoft}]}><Ionicons name="time-outline" size={23} color={palette.gold} /></View>
+          <Text style={[styles.serviceLabel,{color:palette.gold}]}>{m.separate}</Text>
         </View>
-        <Text style={styles.productTitle}>{PREMIUM_PRODUCTS.birth_time_rectification.title}</Text>
-        <Text style={styles.productDescription}>{PREMIUM_PRODUCTS.birth_time_rectification.description}</Text>
+        <Text style={[styles.productTitle,{color:palette.navy}]}>{m.rectificationTitle}</Text>
+        <Text style={[styles.productDescription,{color:palette.muted}]}>{m.rectificationDescription}</Text>
         {displayPrice('birth_time_rectification') ? <Text style={styles.servicePrice}>{displayPrice('birth_time_rectification')}</Text> : null}
-        <Pressable accessibilityRole="button" onPress={() => router.push('/rectification')} style={({ pressed }) => [styles.serviceCta, pressed && styles.pressed]}><Text style={styles.serviceCtaText}>{PREMIUM_PRODUCTS.birth_time_rectification.ctaLabel}</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/rectification')} style={({ pressed }) => [styles.serviceCta,{borderColor:palette.sapphire},pressed && styles.pressed]}><Text style={[styles.serviceCtaText,{color:palette.sapphire}]}>{m.rectificationCta}</Text></Pressable>
       </View>
 
-      <Pressable accessibilityRole="button" disabled={restoring || Boolean(purchasing)} onPress={() => { void restorePurchases().then((result) => setNotice(result.ok ? 'Satın almaların doğrulandı ve hakların yenilendi.' : result.message)); }} style={({ pressed }) => [styles.restoreButton, pressed && styles.pressed]}><Text style={styles.restoreText}>{restoring ? 'GERİ YÜKLENİYOR…' : 'Satın Almaları Geri Yükle'}</Text></Pressable>
+      <Pressable accessibilityRole="button" disabled={restoring || Boolean(purchasing)} onPress={() => { void restorePurchases().then((result) => setNotice(result.ok ? m.restored : m.purchaseError)); }} style={({ pressed }) => [styles.restoreButton, pressed && styles.pressed]}><Text style={[styles.restoreText,{color:palette.sapphire}]}>{restoring ? m.restoring : m.restore}</Text></Pressable>
 
       {notice ? (
-        <View accessibilityLiveRegion="polite" style={styles.notice}>
-          <Ionicons name="information-circle-outline" size={20} color={colors.sapphire} />
-          <Text style={styles.noticeText}>{notice}</Text>
+        <View accessibilityLiveRegion="polite" style={[styles.notice,{backgroundColor:palette.sapphireSoft}]}>
+          <Ionicons name="information-circle-outline" size={20} color={palette.sapphire} />
+          <Text style={[styles.noticeText,{color:palette.navy}]}>{notice}</Text>
         </View>
       ) : null}
 
-      <View style={styles.comparison}>
-        <Text style={styles.comparisonTitle}>Hangi paket sana uygun?</Text>
-        <Text style={styles.comparisonText}>
-          Yalnızca önündeki döneme odaklanmak istersen 12 Aylık Yıllık Öngörün paketini seçebilirsin.
-        </Text>
-        <View style={styles.divider} />
-        <Text style={styles.comparisonText}>
-          İlişkiler, kariyer, para, evler ve karmik göstergelerle birlikte yıllık öngörünü de görmek istersen Tüm Haritamı Aç en kapsamlı seçenektir.
-        </Text>
+      <View style={[styles.comparison,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+        <Text style={[styles.comparisonTitle,{color:palette.navy}]}>{m.comparisonTitle}</Text>
+        <Text style={[styles.comparisonText,{color:palette.muted}]}>{m.comparisonAnnual}</Text>
+        <View style={[styles.divider,{backgroundColor:palette.border}]} />
+        <Text style={[styles.comparisonText,{color:palette.muted}]}>{m.comparisonFull}</Text>
       </View>
     </Screen>
   );

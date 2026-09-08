@@ -6,9 +6,11 @@ import { Screen } from '@/components/Screen';
 import { PREMIUM_PRODUCTS } from '@/constants/products';
 import { colors } from '@/constants/theme';
 import { compatibility } from '@/features/astrology/compatibility';
-import { localizeZodiacSign, ZODIAC_SIGNS } from '@/features/astrology/zodiac';
+import { localizeZodiacSign, localizeZodiacSignForLocale, ZODIAC_SIGNS } from '@/features/astrology/zodiac';
+import { useLocale, usePalette } from '@/localization';
 
 export default function ZodiacCompatibilityScreen() {
+  const {locale,messages}=useLocale(); const palette=usePalette(); const m=messages.compatibility;
   const [first, setFirst] = useState<string | null>(null);
   const [second, setSecond] = useState<string | null>(null);
   const [showErrors, setShowErrors] = useState(false);
@@ -22,37 +24,37 @@ export default function ZodiacCompatibilityScreen() {
   };
 
   return <Screen>
-    <View style={styles.hero}><Text style={styles.eyebrow}>ÜCRETSİZ ARAÇ</Text><Text style={styles.title}>Burç Uyumu</Text><Text style={styles.description}>İki burcun temel karakter uyumunu keşfet.</Text></View>
+    <View style={styles.hero}><Text style={styles.eyebrow}>{m.eyebrow}</Text><Text style={[styles.title,{color:palette.navy}]}>{m.title}</Text><Text style={[styles.description,{color:palette.muted}]}>{m.description}</Text></View>
 
-    {!result ? <View style={styles.formCard}>
-      <SignSelector label="Senin Burcun" value={first} onChange={(value) => { setFirst(value); setShowErrors(false); }} />
-      <SignSelector label="Partnerinin Burcu" value={second} onChange={(value) => { setSecond(value); setShowErrors(false); }} />
-      {showErrors ? <Text accessibilityRole="alert" style={styles.error}>Uyumu hesaplamak için iki burcu da seçmelisin.</Text> : null}
-      <Pressable accessibilityRole="button" onPress={calculate} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>UYUMU HESAPLA</Text></Pressable>
+    {!result ? <View style={[styles.formCard,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+      <SignSelector label={m.yours} locale={locale} value={first} onChange={(value) => { setFirst(value); setShowErrors(false); }} />
+      <SignSelector label={m.partner} locale={locale} value={second} onChange={(value) => { setSecond(value); setShowErrors(false); }} />
+      {showErrors ? <Text accessibilityRole="alert" style={styles.error}>{m.chooseBoth}</Text> : null}
+      <Pressable accessibilityRole="button" onPress={calculate} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{m.calculate}</Text></Pressable>
     </View> : <>
-      <View style={styles.resultCard}>
-        <Text style={styles.resultTitle}>{localizeZodiacSign(first ?? '')} &amp; {localizeZodiacSign(second ?? '')} Uyumu</Text>
-        <Text style={styles.scoreLabel}>Uyum Oranı</Text><Text style={styles.score}>%{result.general}</Text>
-        <View style={styles.scoreGrid}><Score label="Aşk" value={result.love} /><Score label="İletişim" value={result.communication} /><Score label="Tutku" value={result.passion} /><Score label="Uzun Vadeli" value={result.longTerm} /></View>
-        <Text style={styles.resultText}>{result.text}</Text>
-        <Text style={styles.disclaimer}>Bu sonuç yalnızca iki Güneş burcunun temel özelliklerine göre hazırlanmıştır.</Text>
-        <Pressable accessibilityRole="button" onPress={() => setResult(null)} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><Text style={styles.secondaryButtonText}>TEKRAR HESAPLA</Text></Pressable>
+      <View style={[styles.resultCard,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+        <Text style={[styles.resultTitle,{color:palette.navy}]}>{localizeZodiacSignForLocale(first ?? '',locale)} &amp; {localizeZodiacSignForLocale(second ?? '',locale)} {m.result}</Text>
+        <Text style={[styles.scoreLabel,{color:palette.muted}]}>{m.score}</Text><Text style={styles.score}>%{result.general}</Text>
+        <View style={styles.scoreGrid}><Score label={m.love} value={result.love} /><Score label={m.communication} value={result.communication} /><Score label={m.passion} value={result.passion} /><Score label={m.longTerm} value={result.longTerm} /></View>
+        <Text style={[styles.resultText,{color:palette.navy}]}>{result.text}</Text>
+        <Text style={[styles.disclaimer,{color:palette.muted}]}>{m.disclaimer}</Text>
+        <Pressable accessibilityRole="button" onPress={() => setResult(null)} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><Text style={styles.secondaryButtonText}>{m.recalculate}</Text></Pressable>
       </View>
-      <View style={styles.premiumCard}>
-        <Text style={styles.premiumTitle}>İlişkinizi doğum haritalarınızla daha detaylı incelemek ister misiniz?</Text>
-        <View style={styles.productRow}><Text style={styles.productName}>{product.title}</Text><Text style={styles.price}>{product.prototypePrice}</Text></View>
+      <View style={[styles.premiumCard,{backgroundColor:palette.surface,borderColor:palette.gold}]}>
+        <Text style={[styles.premiumTitle,{color:palette.navy}]}>{m.premiumPrompt}</Text>
+        <View style={styles.productRow}><Text style={[styles.productName,{color:palette.navy}]}>{locale === 'en' ? 'Professional Synastry' : product.title}</Text><Text style={styles.price}>{product.prototypePrice}</Text></View>
         <Text style={styles.premiumBadge}>PREMIUM</Text>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/synastry')} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>PROFESYONEL SİNASTRİ</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/synastry')} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>{m.premiumCta}</Text></Pressable>
       </View>
     </>}
   </Screen>;
 }
 
-function SignSelector({ label, value, onChange }: { label: string; value: string | null; onChange: (value: string) => void }) {
-  return <View style={styles.selector}><Text style={styles.selectorLabel}>{label}</Text><View style={styles.signGrid}>{ZODIAC_SIGNS.map((sign) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: value === sign.id }} key={sign.id} onPress={() => onChange(sign.id)} style={({ pressed }) => [styles.signChip, value === sign.id && styles.signChipSelected, pressed && styles.pressed]}><Text style={[styles.signText, value === sign.id && styles.signTextSelected]}>{sign.name}</Text></Pressable>)}</View></View>;
+function SignSelector({ label, value, onChange, locale }: { label: string; value: string | null; onChange: (value: string) => void; locale:'tr'|'en' }) {
+  const palette=usePalette(); return <View style={styles.selector}><Text style={[styles.selectorLabel,{color:palette.navy}]}>{label}</Text><View style={styles.signGrid}>{ZODIAC_SIGNS.map((sign) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: value === sign.id }} key={sign.id} onPress={() => onChange(sign.id)} style={({ pressed }) => [styles.signChip,{backgroundColor:palette.surface,borderColor:palette.border}, value === sign.id && styles.signChipSelected, pressed && styles.pressed]}><Text style={[styles.signText,{color:palette.navy}, value === sign.id && styles.signTextSelected]}>{localizeZodiacSignForLocale(sign.id,locale)}</Text></Pressable>)}</View></View>;
 }
 
-function Score({ label, value }: { label: string; value: number }) { return <View style={styles.scoreItem}><Text style={styles.scoreItemLabel}>{label}</Text><Text style={styles.scoreItemValue}>%{value}</Text></View>; }
+function Score({ label, value }: { label: string; value: number }) { const palette=usePalette(); return <View style={[styles.scoreItem,{backgroundColor:palette.sapphireSoft}]}><Text style={[styles.scoreItemLabel,{color:palette.navy}]}>{label}</Text><Text style={styles.scoreItemValue}>%{value}</Text></View>; }
 
 const styles = StyleSheet.create({
   hero: { alignItems: 'center', gap: 9, paddingTop: 4 }, eyebrow: { color: colors.sapphire, fontSize: 12, fontWeight: '800', letterSpacing: 1.1 }, title: { color: colors.navy, fontSize: 31, fontWeight: '800', lineHeight: 37, textAlign: 'center' }, description: { color: colors.muted, fontSize: 16, lineHeight: 24, textAlign: 'center' },

@@ -5,20 +5,23 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { colors } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useLocale, usePalette } from '@/localization';
 
 export default function HomeScreen() {
+  const { messages } = useLocale();
+  const palette = usePalette();
   const { loading, user } = useAuth();
   const firstName = typeof user?.user_metadata.first_name === 'string' ? user.user_metadata.first_name : '';
   return (
     <Screen>
       <View style={styles.brandRow}>
         <View style={styles.mark}><Text style={styles.markText}>S</Text></View>
-        <Text style={styles.brand}>SAFİR CAN</Text>
+        <Text style={[styles.brand, { color: palette.navy }]}>{messages.home.brand}</Text>
       </View>
 
-      <View style={styles.hero}>
+      <View style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={styles.orbit}>
-          <View style={styles.orbitInner}>
+          <View style={[styles.orbitInner, { backgroundColor: palette.sapphireSoft }]}>
             <Ionicons name="sparkles" size={30} color={colors.sapphire} />
           </View>
         </View>
@@ -28,24 +31,22 @@ export default function HomeScreen() {
             adjustsFontSizeToFit
             minimumFontScale={0.72}
             numberOfLines={1}
-            style={styles.heroTitle}>
-            Safir’in Aynalı Dünyasına
+            style={[styles.heroTitle, { color: palette.navy }]}>
+            {messages.home.title1}
           </Text>
           <Text
             adjustsFontSizeToFit
             numberOfLines={1}
-            style={styles.heroTitle}>
-            Hoş Geldin
+            style={[styles.heroTitle, { color: palette.navy }]}>
+            {messages.home.title2}
           </Text>
         </View>
-        <Text style={styles.heroText}>
-          Doğum haritanı oluştur, günlük gökyüzünü takip et ve astrolojik yolculuğunu sade bir deneyimle keşfet.
-        </Text>
+        <Text style={[styles.heroText, { color: palette.muted }]}>{messages.home.description}</Text>
 
         {!loading && user ? <View style={styles.actions}>
-          <Text style={styles.welcomeText}>Hoş Geldin{firstName ? `, ${firstName}` : ''}</Text>
+          <Text style={[styles.welcomeText, { color: palette.navy }]}>{messages.home.welcome}{firstName ? `, ${firstName}` : ''}</Text>
           <Pressable accessibilityRole="button" onPress={() => router.push('/chart')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-            <Text style={styles.primaryButtonText}>Haritama Git</Text>
+            <Text style={styles.primaryButtonText}>{messages.home.chart}</Text>
             <Ionicons name="arrow-forward" size={21} color={colors.white} />
           </Pressable>
         </View> : !loading ? <View style={styles.actions}>
@@ -53,7 +54,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             onPress={() => router.push('/sign-up')}
             style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-            <Text style={styles.primaryButtonText}>Üye Ol</Text>
+            <Text style={styles.primaryButtonText}>{messages.auth.signUp}</Text>
             <Ionicons name="arrow-forward" size={21} color={colors.white} />
           </Pressable>
 
@@ -61,7 +62,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             onPress={() => router.push('/sign-in')}
             style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
-            <Text style={styles.secondaryButtonText}>Giriş Yap</Text>
+            <Text style={styles.secondaryButtonText}>{messages.auth.signIn}</Text>
           </Pressable>
 
           <Pressable
@@ -69,7 +70,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/discover')}
             hitSlop={10}
             style={({ pressed }) => [styles.guestLink, pressed && styles.pressed]}>
-            <Text style={styles.guestLinkText}>Misafir olarak keşfet</Text>
+            <Text style={styles.guestLinkText}>{messages.home.guest}</Text>
             <Ionicons name="chevron-forward" size={17} color={colors.sapphire} />
           </Pressable>
         </View> : null}

@@ -19,6 +19,14 @@ export function localizeZodiacSign(sign: string) {
   return TURKISH_ZODIAC_SIGNS[sign] ?? sign;
 }
 
+export function localizeZodiacSignForLocale(sign: string, locale: 'tr' | 'en') {
+  return locale === 'tr' ? localizeZodiacSign(sign) : sign;
+}
+
+export function localizeZodiacSignUppercaseForLocale(sign: string, locale: 'tr' | 'en') {
+  return localizeZodiacSignForLocale(sign, locale).toLocaleUpperCase(locale === 'tr' ? 'tr-TR' : 'en-US');
+}
+
 export function localizeZodiacSignUppercase(sign: string) {
   return localizeZodiacSign(sign).toLocaleUpperCase('tr-TR');
 }

@@ -23,7 +23,7 @@ test('server response reconciles the temporary message without a full conversati
 
 test('retryable failures remain visible and rejected messages roll back', () => {
   assert.match(chat, /deliveryStatus: 'failed'/);
-  assert.match(chat, /Gönderilemedi · Tekrar dene/);
+  assert.match(chat, /m\.sendFailed/);
   assert.match(chat, /items\.filter\(\(item\) => item\.id !== localId\)/);
   assert.match(chat, /quota_exceeded/);
 });

@@ -8,7 +8,8 @@ import { colors, layout } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { createNatalChart } from './api/natal-chart';
 import { resolveCurrentBirthProfile, saveCurrentBirthInput } from './birthInputStorage';
-import { localizeZodiacSignUppercase } from './zodiac';
+import { localizeZodiacSignUppercaseForLocale } from './zodiac';
+import { formatDate as formatLocalizedDate, useLocale, usePalette } from '@/localization';
 
 export type FreePlacementToolKind = 'ascendant' | 'moon' | 'venus';
 
@@ -22,7 +23,9 @@ type PickerMode = 'date' | 'time' | null;
 type FormErrors = Partial<Record<'birthDate' | 'birthTime' | 'birthPlace', string>>;
 
 export function FreePlacementTool({ kind }: { kind: FreePlacementToolKind }) {
-  const config = TOOL_CONFIG[kind];
+  const {locale,messages}=useLocale(); const palette=usePalette(); const form=messages.birthForm; const p=messages.placement; const pr=messages.placementResults;
+  const base = TOOL_CONFIG[kind];
+  const config = kind==='ascendant' ? {...base,eyebrow:p.ascendantEyebrow,title:p.ascendantTitle,description:p.ascendantDescription,resultLabel:pr.ascendantLabel,resultDescription:pr.ascendantDescription} : kind==='moon' ? {...base,eyebrow:p.moonEyebrow,title:p.moonTitle,description:p.moonDescription,resultLabel:pr.moonLabel,resultDescription:pr.moonDescription} : {...base,eyebrow:p.venusEyebrow,title:p.venusTitle,description:p.venusDescription,resultLabel:pr.venusLabel,resultDescription:pr.venusDescription};
   const { session } = useAuth();
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [birthTime, setBirthTime] = useState<Date | null>(null);
@@ -60,9 +63,9 @@ export function FreePlacementTool({ kind }: { kind: FreePlacementToolKind }) {
 
   const validate = () => {
     const next: FormErrors = {};
-    if (!birthDate) next.birthDate = 'Doğum tarihini seçmelisin.';
-    if (!unknownBirthTime && !birthTime) next.birthTime = 'Doğum saatini seçmelisin.';
-    if (!birthPlace.trim()) next.birthPlace = 'Doğum yerini yazmalısın.';
+    if (!birthDate) next.birthDate = form.dateError;
+    if (!unknownBirthTime && !birthTime) next.birthTime = form.timeError;
+    if (!birthPlace.trim()) next.birthPlace = form.placeRequired;
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -80,7 +83,7 @@ export function FreePlacementTool({ kind }: { kind: FreePlacementToolKind }) {
       await saveCurrentBirthInput(request).catch(() => undefined);
       setResult(placement.sign);
     } catch (error) {
-      setSubmitError(error instanceof Error && error.message === 'place' ? 'Doğum yerini bulamadık. Şehir ve ülke adıyla tekrar dene.' : 'Şu anda hesaplama yapamıyoruz. Lütfen biraz sonra tekrar dene.');
+      setSubmitError(error instanceof Error && error.message === 'place' ? form.placeError : p.genericError);
     } finally {
       setSubmitting(false);
     }
@@ -93,25 +96,25 @@ export function FreePlacementTool({ kind }: { kind: FreePlacementToolKind }) {
       : 'Doğum bilgilerini daha kesin değerlendirebilmek için doğum saatine ihtiyaç var.';
 
   return <Screen>
-    <View style={styles.hero}><Text style={styles.eyebrow}>{config.eyebrow}</Text><Text style={styles.title}>{config.title}</Text><Text style={styles.description}>{config.description}</Text></View>
-    {result ? <View style={styles.resultCard}>
-      <Text style={styles.resultLabel}>{config.resultLabel}</Text><Text style={styles.resultSign}>{localizeZodiacSignUppercase(result)}</Text><Text style={styles.resultDescription}>{config.resultDescription}</Text>
-      <Pressable accessibilityRole="button" onPress={() => { setResult(null); setErrors({}); }} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><Text style={styles.secondaryButtonText}>TEKRAR HESAPLA</Text></Pressable>
-    </View> : <View style={styles.formCard}>
-      {rectificationPrefill ? <Text style={styles.prefillNotice}>Doğum saatin rektifikasyon sonucundan dolduruldu.</Text> : null}
-      <PickerField label="Doğum Tarihi" value={birthDate ? birthDate.toLocaleDateString('tr-TR') : 'Tarih seç'} error={errors.birthDate} onPress={() => setPicker('date')} />
-      {!unknownBirthTime ? <PickerField label="Doğum Saati" value={birthTime ? birthTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : 'Saat seç'} error={errors.birthTime} onPress={() => setPicker('time')} /> : null}
-      <View style={styles.switchRow}><Text style={styles.switchLabel}>Doğum saatimi bilmiyorum</Text><Switch accessibilityLabel="Doğum saatimi bilmiyorum" value={unknownBirthTime} onValueChange={(value) => { markEdited(); setUnknownBirthTime(value); if (value) setBirthTime(null); setErrors((current) => ({ ...current, birthTime: undefined })); }} trackColor={{ false: colors.border, true: '#8BAFD6' }} thumbColor={unknownBirthTime ? colors.sapphire : colors.white} /></View>
-      <View style={styles.field}><Text style={styles.label}>Doğum Yeri</Text><TextInput autoCapitalize="words" onChangeText={(value) => { markEdited(); setBirthPlace(value); setErrors((current) => ({ ...current, birthPlace: undefined })); }} placeholder="Şehir, ülke" placeholderTextColor="#8B90A0" style={[styles.input, errors.birthPlace && styles.inputError]} value={birthPlace} />{errors.birthPlace ? <Text style={styles.error}>{errors.birthPlace}</Text> : null}</View>
+    <View style={styles.hero}><Text style={styles.eyebrow}>{config.eyebrow}</Text><Text style={[styles.title,{color:palette.navy}]}>{config.title}</Text><Text style={[styles.description,{color:palette.muted}]}>{config.description}</Text></View>
+    {result ? <View style={[styles.resultCard,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+      <Text style={styles.resultLabel}>{config.resultLabel}</Text><Text style={[styles.resultSign,{color:palette.navy}]}>{localizeZodiacSignUppercaseForLocale(result,locale)}</Text><Text style={[styles.resultDescription,{color:palette.muted}]}>{config.resultDescription}</Text>
+      <Pressable accessibilityRole="button" onPress={() => { setResult(null); setErrors({}); }} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><Text style={styles.secondaryButtonText}>{p.recalculate}</Text></Pressable>
+    </View> : <View style={[styles.formCard,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+      {rectificationPrefill ? <Text style={[styles.prefillNotice,{backgroundColor:palette.sapphireSoft,color:palette.navy}]}>{form.rectificationPrefill}</Text> : null}
+      <PickerField label={form.birthDate} value={birthDate ? formatLocalizedDate(birthDate,locale) : form.selectDate} error={errors.birthDate} onPress={() => setPicker('date')} />
+      {!unknownBirthTime ? <PickerField label={form.birthTime} value={birthTime ? birthTime.toLocaleTimeString(locale==='tr'?'tr-TR':'en-US', { hour: '2-digit', minute: '2-digit' }) : form.selectTime} error={errors.birthTime} onPress={() => setPicker('time')} /> : null}
+      <View style={[styles.switchRow,{backgroundColor:palette.surface}]}><Text style={[styles.switchLabel,{color:palette.navy}]}>{form.unknownTime}</Text><Switch accessibilityLabel={form.unknownTime} value={unknownBirthTime} onValueChange={(value) => { markEdited(); setUnknownBirthTime(value); if (value) setBirthTime(null); setErrors((current) => ({ ...current, birthTime: undefined })); }} trackColor={{ false: palette.border, true: palette.sapphireSoft }} thumbColor={unknownBirthTime ? palette.sapphire : palette.white} /></View>
+      <View style={styles.field}><Text style={[styles.label,{color:palette.navy}]}>{form.birthPlace}</Text><TextInput autoCapitalize="words" onChangeText={(value) => { markEdited(); setBirthPlace(value); setErrors((current) => ({ ...current, birthPlace: undefined })); }} placeholder={form.placePlaceholder} placeholderTextColor={palette.muted} style={[styles.input,{backgroundColor:palette.surface,borderColor:palette.border,color:palette.navy}, errors.birthPlace && styles.inputError]} value={birthPlace} />{errors.birthPlace ? <Text style={styles.error}>{errors.birthPlace}</Text> : null}</View>
       {picker ? <View style={Platform.OS === 'ios' ? styles.iosPicker : undefined}><DateTimePicker value={(picker === 'date' ? birthDate : birthTime) ?? new Date()} mode={picker} display={Platform.OS === 'ios' ? 'spinner' : 'default'} maximumDate={picker === 'date' ? new Date() : undefined} locale="tr-TR" is24Hour onValueChange={(_, value) => { markEdited(); if (picker === 'date') { setBirthDate(value); setErrors((current) => ({ ...current, birthDate: undefined })); } else { setBirthTime(value); setErrors((current) => ({ ...current, birthTime: undefined })); } if (Platform.OS === 'android') setPicker(null); }} onDismiss={() => setPicker(null)} />{Platform.OS === 'ios' ? <Pressable style={styles.pickerDone} onPress={() => setPicker(null)}><Text style={styles.pickerDoneText}>Tamam</Text></Pressable> : null}</View> : null}
-      {unknownBirthTime ? <View style={styles.infoCard}><Text style={styles.infoText}>{unknownMessage}</Text><Pressable accessibilityRole="button" onPress={() => router.push('/rectification')} style={styles.rectificationButton}><Text style={styles.rectificationButtonText}>DOĞUM SAATİMİ BUL</Text></Pressable></View> : null}
+      {unknownBirthTime ? <View style={[styles.infoCard,{backgroundColor:palette.sapphireSoft}]}><Text style={[styles.infoText,{color:palette.navy}]}>{unknownMessage}</Text><Pressable accessibilityRole="button" onPress={() => router.push('/rectification')} style={styles.rectificationButton}><Text style={styles.rectificationButtonText}>{p.findTime}</Text></Pressable></View> : null}
       {submitError ? <Text accessibilityRole="alert" style={styles.submitError}>{submitError}</Text> : null}
-      {!unknownBirthTime ? <Pressable accessibilityRole="button" disabled={submitting} onPress={() => void submit()} style={({ pressed }) => [styles.submit, (pressed || submitting) && styles.pressed]}>{submitting ? <View style={styles.loadingRow}><ActivityIndicator color={colors.white} /><Text style={styles.submitText}>HESAPLANIYOR…</Text></View> : <Text style={styles.submitText}>HESAPLA</Text>}</Pressable> : null}
+      {!unknownBirthTime ? <Pressable accessibilityRole="button" disabled={submitting} onPress={() => void submit()} style={({ pressed }) => [styles.submit, (pressed || submitting) && styles.pressed]}>{submitting ? <View style={styles.loadingRow}><ActivityIndicator color={colors.white} /><Text style={styles.submitText}>{p.calculating}</Text></View> : <Text style={styles.submitText}>{p.calculate}</Text>}</Pressable> : null}
     </View>}
   </Screen>;
 }
 
-function PickerField({ label, value, error, onPress }: { label: string; value: string; error?: string; onPress: () => void }) { return <View style={styles.field}><Text style={styles.label}>{label}</Text><Pressable accessibilityRole="button" onPress={onPress} style={[styles.input, styles.pickerField, error && styles.inputError]}><Text style={styles.pickerText}>{value}</Text><Text style={styles.chevron}>›</Text></Pressable>{error ? <Text style={styles.error}>{error}</Text> : null}</View>; }
+function PickerField({ label, value, error, onPress }: { label: string; value: string; error?: string; onPress: () => void }) { const palette=usePalette(); return <View style={styles.field}><Text style={[styles.label,{color:palette.navy}]}>{label}</Text><Pressable accessibilityRole="button" onPress={onPress} style={[styles.input, styles.pickerField,{backgroundColor:palette.surface,borderColor:palette.border}, error && styles.inputError]}><Text style={[styles.pickerText,{color:palette.navy}]}>{value}</Text><Text style={[styles.chevron,{color:palette.sapphire}]}>›</Text></Pressable>{error ? <Text style={styles.error}>{error}</Text> : null}</View>; }
 function formatDate(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 function formatTime(date: Date) { return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; }
 function parseDate(value: string) { const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value); if (!match) return null; const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12); return Number.isNaN(date.getTime()) ? null : date; }

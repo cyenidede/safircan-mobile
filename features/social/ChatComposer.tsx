@@ -3,13 +3,17 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { colors } from '@/constants/theme';
 import { PREMIUM_PRODUCTS } from '@/constants/products';
+import { useLocale, usePalette } from '@/localization';
 import type { SocialUsage } from './api';
 
 export function ChatComposer({ usage, sending, immediate = false, onSend }: { usage: SocialUsage | null; sending: boolean; immediate?: boolean; onSend: (body: string) => boolean | Promise<boolean> }) {
+  const { messages } = useLocale();
+  const palette = usePalette();
+  const m = messages.chat;
   const [body, setBody] = useState('');
   const bodyRef = useRef('');
   const pressLocked = useRef(false);
-  if (usage && !usage.allowed) return <View style={styles.paywall}><Text style={styles.paywallTitle}>10 ücretsiz mesaj hakkını kullandın.</Text><Text style={styles.copy}>Sınırsız mesajlaşmaya geç.</Text><Text style={styles.price}>{PREMIUM_PRODUCTS.messaging_subscription.prototypePrice}</Text><Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/premium', params: { product: 'messaging_subscription' } } as Href)} style={styles.upgrade}><Text style={styles.upgradeText}>SINIRSIZ MESAJLAŞMAYA GEÇ</Text></Pressable></View>;
+  if (usage && !usage.allowed) return <View style={[styles.paywall,{backgroundColor:palette.surface,borderTopColor:palette.border}]}><Text style={[styles.paywallTitle,{color:palette.navy}]}>{m.limitTitle}</Text><Text style={[styles.copy,{color:palette.muted}]}>{m.limitCopy}</Text><Text style={styles.price}>{PREMIUM_PRODUCTS.messaging_subscription.prototypePrice}</Text><Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/premium', params: { product: 'messaging_subscription' } } as Href)} style={styles.upgrade}><Text style={styles.upgradeText}>{m.upgrade}</Text></Pressable></View>;
   const handlePress = () => {
     const trimmed = bodyRef.current.trim();
     if (!trimmed || sending || pressLocked.current) return;
@@ -20,7 +24,7 @@ export function ChatComposer({ usage, sending, immediate = false, onSend }: { us
     requestAnimationFrame(() => { pressLocked.current = false; });
   };
   const updateBody = (value: string) => { bodyRef.current = value; setBody(value); };
-  return <View style={styles.container}><TextInput accessibilityLabel="Mesaj" multiline maxLength={1000} onChangeText={updateBody} placeholder="Mesajını yaz…" placeholderTextColor={colors.muted} style={styles.input} value={body} /><Pressable accessibilityRole="button" disabled={!body.trim() || sending} onPress={handlePress} style={({ pressed }) => [styles.send, (pressed || sending || !body.trim()) && styles.disabled]}><Text style={styles.sendText}>GÖNDER</Text></Pressable></View>;
+  return <View style={[styles.container,{backgroundColor:palette.surface,borderTopColor:palette.border}]}><TextInput accessibilityLabel={m.label} multiline maxLength={1000} onChangeText={updateBody} placeholder={m.placeholder} placeholderTextColor={palette.muted} style={[styles.input,{backgroundColor:palette.background,borderColor:palette.border,color:palette.navy}]} value={body} /><Pressable accessibilityRole="button" disabled={!body.trim() || sending} onPress={handlePress} style={({ pressed }) => [styles.send, (pressed || sending || !body.trim()) && styles.disabled]}><Text style={styles.sendText}>{m.send}</Text></Pressable></View>;
 }
 
 const styles = StyleSheet.create({

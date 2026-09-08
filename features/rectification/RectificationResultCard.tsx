@@ -2,6 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
+import { useLocale, usePalette } from '@/localization';
+import { localizeZodiacSignForLocale } from '@/features/astrology/zodiac';
+import { useRectificationText } from './presentation';
 
 export type PublicRectificationResult = {
   birthTime: string;
@@ -13,14 +16,14 @@ export type RectifiedBirthTime = PublicRectificationResult & {
 };
 
 export function RectificationResultCard({ result, saving, onSave }: { result: PublicRectificationResult; saving?: boolean; onSave: (value: RectifiedBirthTime) => void }) {
-  return <View style={styles.card}>
+  const palette=usePalette(); const { locale }=useLocale(); const t=useRectificationText(); return <View style={[styles.card,{backgroundColor:palette.surface,borderColor:palette.gold}]}>
     <View style={styles.icon}><Ionicons name="time-outline" size={28} color={colors.gold} /></View>
-    <Text style={styles.title}>Doğum Saatin Hesaplandı</Text>
+    <Text style={[styles.title,{color:palette.navy}]}>{t('Doğum Saatin Hesaplandı')}</Text>
     <Text style={styles.time}>{result.birthTime}</Text>
-    <Text style={styles.label}>Yükselen Burcun</Text>
-    <Text style={styles.sign}>{result.ascendantSign}</Text>
-    <Text style={styles.note}>Bu saat, verdiğin yaşam olaylarının astrolojik olarak karşılaştırılmasıyla hesaplanan en güçlü eşleşmedir.</Text>
-    <Pressable accessibilityRole="button" disabled={saving} onPress={() => onSave({ ...result, birthTimeSource: 'rectification' })} style={({ pressed }) => [styles.button, (pressed || saving) && styles.pressed]}><Text style={styles.buttonText}>{saving ? 'KAYDEDİLİYOR…' : 'DOĞUM SAATİMİ KAYDET'}</Text></Pressable>
+    <Text style={[styles.label,{color:palette.muted}]}>{t('Yükselen Burcun')}</Text>
+    <Text style={[styles.sign,{color:palette.navy}]}>{localizeZodiacSignForLocale(result.ascendantSign,locale)}</Text>
+    <Text style={[styles.note,{color:palette.muted}]}>{t('Bu saat, verdiğin yaşam olaylarının astrolojik olarak karşılaştırılmasıyla hesaplanan en güçlü eşleşmedir.')}</Text>
+    <Pressable accessibilityRole="button" disabled={saving} onPress={() => onSave({ ...result, birthTimeSource: 'rectification' })} style={({ pressed }) => [styles.button, (pressed || saving) && styles.pressed]}><Text style={styles.buttonText}>{t(saving?'KAYDEDİLİYOR…':'DOĞUM SAATİMİ KAYDET')}</Text></Pressable>
   </View>;
 }
 

@@ -6,6 +6,7 @@ import { Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from '
 import { Screen } from '@/components/Screen';
 import { colors, layout } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useLocale, usePalette } from '@/localization';
 import { createSynastryReport, type SynastryPersonRequest } from './api';
 import { formatSynastryIndicatorSummary } from './indicatorSummaryPresentation';
 import type { SynastryQuestionAnswer, SynastryRelationshipType } from './types';
@@ -22,6 +23,7 @@ function getDevelopmentPreviewAnswers(type: SynastryRelationshipType): readonly 
 }
 
 export function SynastryExperience() {
+  const { locale, messages } = useLocale(); const palette=usePalette(); const m=messages.synastry;
   const { session } = useAuth();
   const [relationshipType, setRelationshipType] = useState<SynastryRelationshipType | null>(null);
   const [self, setSelf] = useState<PersonDraft>(emptyPerson);
@@ -33,7 +35,7 @@ export function SynastryExperience() {
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const otherLabel = relationshipType === 'married' ? 'Eşinin Bilgileri' : 'Partnerinin Bilgileri';
+  const otherLabel = relationshipType === 'married' ? m.spouse : m.partner;
   const currentPickerValue = picker
     ? ((picker.person === 'self' ? self : other)[picker.mode === 'date' ? 'birthDate' : 'birthTime'] ?? new Date())
     : new Date();
@@ -55,13 +57,14 @@ export function SynastryExperience() {
 
   const submit = async () => {
     if (!relationshipType || submitting) return;
-    const nextSelfErrors = validatePerson(self);
-    const nextOtherErrors = validatePerson(other);
+    const validation={name:messages.birthForm.firstNameError,birthDate:messages.birthForm.dateError,birthTime:messages.birthForm.timeError,birthPlace:messages.birthForm.placeRequired};
+    const nextSelfErrors = validatePerson(self,validation);
+    const nextOtherErrors = validatePerson(other,validation);
     setSelfErrors(nextSelfErrors);
     setOtherErrors(nextOtherErrors);
     if (Object.keys(nextSelfErrors).length || Object.keys(nextOtherErrors).length) return;
     if (!session?.access_token) {
-      setPreviewMessage('Sinastrini hazırlamak için önce giriş yapmalısın.');
+      setPreviewMessage(m.signIn);
       return;
     }
     setSubmitting(true);
@@ -76,12 +79,11 @@ export function SynastryExperience() {
     } catch (error) {
       const kind = error instanceof Error ? error.message : 'temporary';
       setPreviewMessage(kind === 'auth'
-        ? 'Oturumunu yenileyip tekrar dene.'
+        ? m.session
         : kind === 'entitlement'
-          ? 'Profesyonel Sinastri erişimi hesabında henüz aktif değil.'
+          ? m.entitlement
           : kind === 'place'
-            ? 'Doğum yerlerinden birini bulamadık. Şehir ve ülke adıyla tekrar dene.'
-            : 'Sinastriniz şu anda hazırlanamadı. Lütfen biraz sonra tekrar dene.');
+            ? m.placeError : m.error);
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +92,7 @@ export function SynastryExperience() {
   if (results && relationshipType) {
     return <SynastryResults
       answers={results}
-      names={{ self: self.name.trim() || 'Sen', other: other.name.trim() || (relationshipType === 'married' ? 'Eşin' : 'Partnerin') }}
+      names={{ self: self.name.trim() || m.you, other: other.name.trim() || (relationshipType === 'married' ? m.spouseName : m.partnerName) }}
       relationshipType={relationshipType}
       onBack={() => setResults(null)}
     />;
@@ -98,31 +100,26 @@ export function SynastryExperience() {
 
   return <Screen>
     <View style={styles.hero}>
-      <Text style={styles.eyebrow}>PROFESYONEL İLİŞKİ ANALİZİ</Text>
-      <Text style={styles.heroTitle}>Sinastri</Text>
-      <Text style={styles.heroDescription}>İki doğum haritasının birbiriyle nasıl etkileşime girdiğini keşfet.</Text>
+      <Text style={styles.eyebrow}>{m.eyebrow}</Text><Text style={[styles.heroTitle,{color:palette.navy}]}>{m.title}</Text><Text style={[styles.heroDescription,{color:palette.muted}]}>{m.description}</Text>
     </View>
 
     {!relationshipType ? <>
       <View style={styles.choiceList}>
-        <RelationshipCard icon="heart" label="Sevgiliyiz" onPress={() => setRelationshipType('dating')} />
-        <RelationshipCard icon="diamond" label="Evliyiz" onPress={() => setRelationshipType('married')} />
+        <RelationshipCard icon="heart" label={m.dating} onPress={() => setRelationshipType('dating')} /><RelationshipCard icon="diamond" label={m.married} onPress={() => setRelationshipType('married')} />
       </View>
-      {__DEV__ ? <View style={styles.previewPanel}>
-        <Text style={styles.previewTitle}>Sinastri Önizleme</Text>
-        <Text style={styles.previewCopy}>Onaylı fixture verisiyle iki sonuç akışını doğrudan incele.</Text>
+      {__DEV__ ? <View style={[styles.previewPanel,{backgroundColor:palette.surface,borderColor:palette.gold}]}>
+        <Text style={styles.previewTitle}>{m.preview}</Text><Text style={styles.previewCopy}>{m.previewCopy}</Text>
         <View style={styles.previewActions}>
-          <SmallButton label="Sevgili Önizleme" onPress={() => openPreview('dating')} />
-          <SmallButton label="Evli Önizleme" onPress={() => openPreview('married')} />
+          <SmallButton label={m.datingPreview} onPress={() => openPreview('dating')} /><SmallButton label={m.marriedPreview} onPress={() => openPreview('married')} />
         </View>
       </View> : null}
     </> : <>
       <Pressable accessibilityRole="button" onPress={() => setRelationshipType(null)} style={styles.changeType}>
         <Ionicons name="chevron-back" size={18} color={colors.sapphire} />
-        <Text style={styles.changeTypeText}>İlişki türünü değiştir</Text>
+        <Text style={styles.changeTypeText}>{m.change}</Text>
       </Pressable>
       <PersonForm
-        draft={self} errors={selfErrors} heading="Senin Bilgilerin" person="self"
+        draft={self} errors={selfErrors} heading={m.yours} person="self"
         onOpenPicker={(mode) => setPicker({ person: 'self', mode })}
         onUpdate={(patch) => updatePerson('self', patch)}
       />
@@ -133,7 +130,7 @@ export function SynastryExperience() {
       />
       {(self.unknownBirthTime || other.unknownBirthTime) ? <View style={styles.infoCard}>
         <Ionicons name="information-circle-outline" size={21} color={colors.sapphire} />
-        <Text style={styles.infoText}>Doğum saati bilinmediğinde evler ve yükselen bağlantıları analize dahil edilemez; gezegenler arası uyum yine incelenir.</Text>
+        <Text style={[styles.infoText,{color:palette.navy}]}>{m.unknownInfo}</Text>
       </View> : null}
       {picker ? <View style={Platform.OS === 'ios' ? styles.iosPicker : undefined}>
         <DateTimePicker
@@ -141,18 +138,18 @@ export function SynastryExperience() {
           mode={picker.mode}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           maximumDate={picker.mode === 'date' ? new Date() : undefined}
-          locale="tr-TR"
+          locale={locale === 'tr' ? 'tr-TR' : 'en-US'}
           onValueChange={(_, date) => {
             updatePerson(picker.person, picker.mode === 'date' ? { birthDate: date } : { birthTime: date });
             if (Platform.OS === 'android') setPicker(null);
           }}
           onDismiss={() => setPicker(null)}
         />
-        {Platform.OS === 'ios' ? <Pressable onPress={() => setPicker(null)} style={styles.pickerDone}><Text style={styles.pickerDoneText}>Tamam</Text></Pressable> : null}
+        {Platform.OS === 'ios' ? <Pressable onPress={() => setPicker(null)} style={styles.pickerDone}><Text style={styles.pickerDoneText}>{messages.birthForm.done}</Text></Pressable> : null}
       </View> : null}
       {previewMessage ? <Text style={styles.previewMessage}>{previewMessage}</Text> : null}
       <Pressable accessibilityRole="button" disabled={submitting} onPress={() => void submit()} style={({ pressed }) => [styles.cta, (pressed || submitting) && styles.pressed]}>
-        <Text style={styles.ctaText}>{submitting ? 'Sinastriniz hazırlanıyor...' : 'SİNASTRİMİZİ İNCELE'}</Text>
+        <Text style={styles.ctaText}>{submitting ? m.preparing : m.submit}</Text>
       </Pressable>
     </>}
   </Screen>;
@@ -176,19 +173,19 @@ function personRequest(person: PersonDraft): SynastryPersonRequest {
   };
 }
 
-function validatePerson(person: PersonDraft): PersonErrors {
+function validatePerson(person: PersonDraft, labels: Record<'name'|'birthDate'|'birthTime'|'birthPlace',string>): PersonErrors {
   const errors: PersonErrors = {};
-  if (!person.name.trim()) errors.name = 'Adını yazmalısın.';
-  if (!person.birthDate) errors.birthDate = 'Doğum tarihini seçmelisin.';
-  if (!person.unknownBirthTime && !person.birthTime) errors.birthTime = 'Doğum saatini seçmelisin.';
-  if (!person.birthPlace.trim()) errors.birthPlace = 'Doğum yerini yazmalısın.';
+  if (!person.name.trim()) errors.name = labels.name;
+  if (!person.birthDate) errors.birthDate = labels.birthDate;
+  if (!person.unknownBirthTime && !person.birthTime) errors.birthTime = labels.birthTime;
+  if (!person.birthPlace.trim()) errors.birthPlace = labels.birthPlace;
   return errors;
 }
 
 function RelationshipCard({ icon, label, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.relationshipCard, pressed && styles.pressed]}>
+  const palette=usePalette(); return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.relationshipCard,{backgroundColor:palette.surface,borderColor:palette.border}, pressed && styles.pressed]}>
     <View style={styles.relationshipIcon}><Ionicons name={icon} size={25} color={colors.sapphire} /></View>
-    <Text style={styles.relationshipLabel}>{label}</Text>
+    <Text style={[styles.relationshipLabel,{color:palette.navy}]}>{label}</Text>
     <Ionicons name="chevron-forward" size={23} color={colors.sapphire} />
   </Pressable>;
 }
@@ -201,58 +198,57 @@ function PersonForm({ draft, errors, heading, person, onOpenPicker, onUpdate }: 
   draft: PersonDraft; errors: PersonErrors; heading: string; person: 'self' | 'other';
   onOpenPicker: (mode: 'date' | 'time') => void; onUpdate: (patch: Partial<PersonDraft>) => void;
 }) {
-  const unknownLabel = person === 'self' ? 'Doğum saatimi bilmiyorum' : 'Doğum saatini bilmiyorum';
-  return <View style={styles.formCard}>
-    <Text style={styles.formHeading}>{heading}</Text>
-    <LabeledInput label="Ad" value={draft.name} onChangeText={(name) => onUpdate({ name })} error={errors.name} />
-    <PickerButton label="Doğum Tarihi" value={draft.birthDate?.toLocaleDateString('tr-TR') ?? 'Tarih seç'} onPress={() => onOpenPicker('date')} error={errors.birthDate} />
-    {!draft.unknownBirthTime ? <PickerButton label="Doğum Saati" value={draft.birthTime?.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) ?? 'Saat seç'} onPress={() => onOpenPicker('time')} error={errors.birthTime} /> : null}
-    <View style={styles.switchRow}>
-      <Text style={styles.switchLabel}>{unknownLabel}</Text>
-      <Switch value={draft.unknownBirthTime} onValueChange={(unknownBirthTime) => onUpdate({ unknownBirthTime, ...(unknownBirthTime ? { birthTime: null } : {}) })} trackColor={{ false: colors.border, true: '#8BAFD6' }} thumbColor={draft.unknownBirthTime ? colors.sapphire : colors.white} />
+  const {locale,messages}=useLocale(); const palette=usePalette(); const s=messages.synastry; const b=messages.birthForm;
+  const unknownLabel = person === 'self' ? s.unknownMine : s.unknownOther;
+  return <View style={[styles.formCard,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+    <Text style={[styles.formHeading,{color:palette.navy}]}>{heading}</Text>
+    <LabeledInput label={b.firstName} value={draft.name} onChangeText={(name) => onUpdate({ name })} error={errors.name} />
+    <PickerButton label={b.birthDate} value={draft.birthDate?.toLocaleDateString(locale==='tr'?'tr-TR':'en-US') ?? b.selectDate} onPress={() => onOpenPicker('date')} error={errors.birthDate} />
+    {!draft.unknownBirthTime ? <PickerButton label={b.birthTime} value={draft.birthTime?.toLocaleTimeString(locale==='tr'?'tr-TR':'en-US', { hour: '2-digit', minute: '2-digit' }) ?? b.selectTime} onPress={() => onOpenPicker('time')} error={errors.birthTime} /> : null}
+    <View style={[styles.switchRow,{backgroundColor:palette.surface,borderColor:palette.border,borderWidth:1}]}>
+      <Text style={[styles.switchLabel,{color:palette.navy}]}>{unknownLabel}</Text>
+      <Switch value={draft.unknownBirthTime} onValueChange={(unknownBirthTime) => onUpdate({ unknownBirthTime, ...(unknownBirthTime ? { birthTime: null } : {}) })} trackColor={{ false: palette.border, true: palette.sapphire }} thumbColor={draft.unknownBirthTime ? palette.white : palette.muted} />
     </View>
-    <LabeledInput label={person === 'self' ? 'Doğum Yerim' : 'Doğum Yeri'} placeholder="Şehir, ülke" value={draft.birthPlace} onChangeText={(birthPlace) => onUpdate({ birthPlace })} error={errors.birthPlace} />
+    <LabeledInput label={person === 'self' ? s.placeMine : s.placeOther} placeholder={b.placePlaceholder} value={draft.birthPlace} onChangeText={(birthPlace) => onUpdate({ birthPlace })} error={errors.birthPlace} />
   </View>;
 }
 
 function LabeledInput({ label, error, ...props }: React.ComponentProps<typeof TextInput> & { label: string; error?: string }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput {...props} autoCapitalize="words" placeholderTextColor="#8B90A0" style={[styles.input, error && styles.inputError]} />{error ? <Text style={styles.error}>{error}</Text> : null}</View>;
+  const palette=usePalette(); return <View style={styles.field}><Text style={[styles.label,{color:palette.navy}]}>{label}</Text><TextInput {...props} autoCapitalize="words" placeholderTextColor={palette.muted} style={[styles.input,{backgroundColor:palette.background,borderColor:palette.border,color:palette.navy}, error && styles.inputError]} />{error ? <Text style={styles.error}>{error}</Text> : null}</View>;
 }
 
 function PickerButton({ label, value, onPress, error }: { label: string; value: string; onPress: () => void; error?: string }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><Pressable accessibilityRole="button" onPress={onPress} style={[styles.input, styles.pickerButton, error && styles.inputError]}><Text style={styles.pickerText}>{value}</Text><Ionicons name="chevron-forward" size={20} color={colors.sapphire} /></Pressable>{error ? <Text style={styles.error}>{error}</Text> : null}</View>;
+  const palette=usePalette(); return <View style={styles.field}><Text style={[styles.label,{color:palette.navy}]}>{label}</Text><Pressable accessibilityRole="button" onPress={onPress} style={[styles.input, styles.pickerButton,{backgroundColor:palette.background,borderColor:palette.border}, error && styles.inputError]}><Text style={[styles.pickerText,{color:palette.navy}]}>{value}</Text><Ionicons name="chevron-forward" size={20} color={palette.sapphire} /></Pressable>{error ? <Text style={styles.error}>{error}</Text> : null}</View>;
 }
 
 function SynastryResults({ answers, names, relationshipType, onBack }: { answers: readonly SynastryQuestionAnswer[]; names: { self: string; other: string }; relationshipType: SynastryRelationshipType; onBack: () => void }) {
-  const subtitle = relationshipType === 'married' ? 'Evliliğinizin güçlü, hassas ve gelişime açık alanları' : 'İlişkinizin güçlü, hassas ve gelişime açık alanları';
+  const {messages}=useLocale(); const palette=usePalette(); const m=messages.synastry; const subtitle = relationshipType === 'married' ? m.marriedSubtitle : m.datingSubtitle;
   return <Screen>
-    <Pressable accessibilityRole="button" onPress={onBack} style={styles.changeType}><Ionicons name="chevron-back" size={18} color={colors.sapphire} /><Text style={styles.changeTypeText}>Bilgilere dön</Text></Pressable>
+    <Pressable accessibilityRole="button" onPress={onBack} style={styles.changeType}><Ionicons name="chevron-back" size={18} color={colors.sapphire} /><Text style={styles.changeTypeText}>{m.back}</Text></Pressable>
     <View style={styles.hero}>
       {__DEV__ ? <Text style={styles.devBadge}>DEVELOPMENT PREVIEW</Text> : null}
-      <Text style={styles.eyebrow}>SİNASTRİ ANALİZİNİZ</Text>
-      <Text style={styles.resultNames}>{names.self} &amp; {names.other}</Text>
-      <Text style={styles.heroDescription}>{subtitle}</Text>
+      <Text style={styles.eyebrow}>{m.resultEyebrow}</Text><Text style={[styles.resultNames,{color:palette.navy}]}>{names.self} &amp; {names.other}</Text><Text style={[styles.heroDescription,{color:palette.muted}]}>{subtitle}</Text>
     </View>
-    <View style={styles.questionsHeader}><Text style={styles.questionsTitle}>İlişkinize Dair 17 Soru</Text><Text style={styles.questionsCount}>{answers.length} kişisel cevap</Text></View>
+    <View style={styles.questionsHeader}><Text style={[styles.questionsTitle,{color:palette.navy}]}>{m.questions}</Text><Text style={styles.questionsCount}>{answers.length} {m.answers}</Text></View>
     <View style={styles.questionList}>{answers.map((answer) => <QuestionCard key={answer.questionId} answer={answer} />)}</View>
   </Screen>;
 }
 
 const QuestionCard = memo(function QuestionCard({ answer }: { answer: SynastryQuestionAnswer }) {
+  const {messages}=useLocale(); const palette=usePalette(); const m=messages.synastry;
   const [open, setOpen] = useState(false);
   const summaries = useMemo(
     () => answer.indicatorSummary.slice(0, 5).map(formatSynastryIndicatorSummary),
     [answer.indicatorSummary],
   );
-  return <View style={styles.questionCard}>
-    <Text style={styles.question}>{answer.question}</Text>
+  return <View style={[styles.questionCard,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+    <Text style={[styles.question,{color:palette.navy}]}>{answer.question}</Text>
     <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((value) => !value)} style={styles.answerToggle}>
-      <Text style={styles.answerToggleText}>{open ? 'Cevabı Gizle' : 'Cevabı Gör'}</Text>
+      <Text style={styles.answerToggleText}>{open ? m.hide : m.show}</Text>
       <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={17} color={colors.sapphire} />
     </Pressable>
     {open ? <View style={styles.answerBody}>
-      <Text style={styles.answerText}>{answer.answer}</Text>
-      <Text style={styles.indicatorTitle}>Bu yorumu etkileyen göstergeler</Text>
+      <Text style={[styles.answerText,{color:palette.navy}]}>{answer.answer}</Text><Text style={styles.indicatorTitle}>{m.indicators}</Text>
       <View style={styles.indicators}>{summaries.map((summary) => <View key={summary} style={styles.indicator}><Text style={styles.indicatorText}>{summary}</Text></View>)}</View>
     </View> : null}
   </View>;

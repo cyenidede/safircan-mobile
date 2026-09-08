@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { Screen } from '@/components/Screen';
 import { colors } from '@/constants/theme';
+import { useLocale, usePalette } from '@/localization';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { getDailyTransits, type DailyTransitsResponse } from './api/daily-transits';
 import { resolveCurrentBirthProfile, type CurrentBirthInput } from './birthInputStorage';
@@ -12,6 +13,7 @@ import { dominantTransitTheme, formatTransitDate, presentTransit } from './trans
 type ViewState = 'loading' | 'profile-missing' | 'time-missing' | 'error' | 'ready';
 
 export function DailyTransitsExperience() {
+  const {messages}=useLocale(); const palette=usePalette(); const m=messages.dailyTransits;
   const { loading: authLoading, session } = useAuth();
   const [state, setState] = useState<ViewState>('loading');
   const [profile, setProfile] = useState<CurrentBirthInput | null>(null);
@@ -35,9 +37,9 @@ export function DailyTransitsExperience() {
   useEffect(() => { void load(); }, [load]);
 
   return <Screen>
-    <View style={styles.hero}><Text style={styles.eyebrow}>BUGÜNÜN GÖKYÜZÜ</Text><Text style={styles.title}>Günlük Transitler</Text><Text style={styles.description}>Bugün gökyüzündeki hareketlerin doğum haritanla nasıl etkileşime girdiğini keşfet.</Text></View>
+    <View style={styles.hero}><Text style={styles.eyebrow}>{m.eyebrow}</Text><Text style={[styles.title,{color:palette.navy}]}>{m.title}</Text><Text style={[styles.description,{color:palette.muted}]}>{m.description}</Text></View>
     {state === 'loading' ? <StateCard><ActivityIndicator color={colors.sapphire} size="large" /><Text style={styles.stateTitle}>Günlük transitlerin hazırlanıyor…</Text></StateCard> : null}
-    {state === 'profile-missing' ? <StateCard><Text style={styles.stateTitle}>Günlük transitlerini görmek için doğum bilgilerini tamamlaman gerekiyor.</Text><Action label="DOĞUM BİLGİLERİMİ TAMAMLA" onPress={() => router.push({ pathname: '/birth-chart', params: { returnTo: '/daily-transits' } })} /></StateCard> : null}
+    {state === 'profile-missing' ? <StateCard><Text style={[styles.stateTitle,{color:palette.navy}]}>{m.required}</Text><Action label={messages.accessRequired.action} onPress={() => router.push({ pathname: '/birth-chart', params: { returnTo: '/daily-transits' } })} /></StateCard> : null}
     {state === 'time-missing' ? <StateCard><Text style={styles.stateTitle}>Kişisel günlük transitlerin için doğum saatine ihtiyaç var.</Text><Text style={styles.stateText}>Doğum saatini bilmiyorsan yaşam olaylarından hesaplama çalışmasını kullanabilirsin.</Text><Action label="DOĞUM SAATİMİ BUL" onPress={() => router.push('/rectification')} /></StateCard> : null}
     {state === 'error' ? <StateCard><Text style={styles.stateTitle}>Günlük transitlerin şu anda hazırlanamadı.</Text><Text style={styles.stateText}>Biraz sonra tekrar deneyebilirsin.</Text><Action label="TEKRAR DENE" onPress={() => void load()} /></StateCard> : null}
     {state === 'ready' && result ? <TransitResults result={result} rectificationTime={profile?.birth_time_source === 'rectification'} onRefresh={() => void load()} /> : null}
@@ -56,7 +58,7 @@ function TransitResults({ result, rectificationTime, onRefresh }: { result: Dail
   </>;
 }
 
-function StateCard({ children }: React.PropsWithChildren) { return <View style={styles.stateCard}>{children}</View>; }
+function StateCard({ children }: React.PropsWithChildren) { const palette=usePalette(); return <View style={[styles.stateCard,{backgroundColor:palette.surface,borderColor:palette.border}]}>{children}</View>; }
 function Action({ label, onPress }: { label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.action, pressed && styles.pressed]}><Text style={styles.actionText}>{label}</Text></Pressable>; }
 function Highlight({ label, text, tone }: { label: string; text: string; tone: 'supportive' | 'challenging' }) { return <View style={[styles.highlight, tone === 'challenging' && styles.highlightWarning]}><Text style={[styles.highlightLabel, tone === 'challenging' && styles.highlightWarningText]}>{label}</Text><Text style={styles.highlightText}>{text}</Text></View>; }
 

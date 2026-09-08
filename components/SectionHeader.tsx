@@ -1,12 +1,14 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/theme';
+import { usePalette } from '@/localization';
 
 export function SectionHeader({ eyebrow, title, description }: { eyebrow?: string; title: string; description?: string }) {
+  const palette = usePalette();
   return (
     <View style={styles.container}>
-      {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text style={styles.title}>{title}</Text>
-      {description ? <Text style={styles.description}>{description}</Text> : null}
+      {eyebrow ? <Text style={[styles.eyebrow, { color: palette.sapphire }]}>{eyebrow}</Text> : null}
+      <Text style={[styles.title, { color: palette.navy }]}>{title}</Text>
+      {description ? <Text style={[styles.description, { color: palette.muted }]}>{description}</Text> : null}
     </View>
   );
 }

@@ -12,6 +12,8 @@ import { calculateRectification, RectificationRequestError, submitRectification 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useEntitlements } from '@/features/premium/EntitlementProvider';
 import { validateRectificationDraft } from '@/features/rectification/validation';
+import { usePalette } from '@/localization';
+import { useRectificationText } from '@/features/rectification/presentation';
 
 const sections: Array<{ title: string; step: number; summary: (draft: RectificationDraft) => string }> = [
   { title: 'Doğum bilgileri', step: 1, summary: (d) => `${d.birth.date || 'Tarih yok'} • ${d.birth.city || 'İl yok'}` },
@@ -25,6 +27,7 @@ const sections: Array<{ title: string; step: number; summary: (draft: Rectificat
 ];
 
 export default function RectificationReviewScreen() {
+  const palette=usePalette(); const t=useRectificationText();
   const [draft, setDraft] = useState<RectificationDraft | null>(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -33,8 +36,8 @@ export default function RectificationReviewScreen() {
   const canUseRectification = hasEntitlement('birth_time_rectification');
   useEffect(() => { if (!entitlementLoading && !canUseRectification) router.replace('/rectification'); }, [canUseRectification, entitlementLoading]);
   useEffect(() => { if (entitlementLoading || !canUseRectification) return; void loadRectificationDraft().then(setDraft); }, [canUseRectification, entitlementLoading]);
-  if (entitlementLoading || !canUseRectification) return <Screen><Text style={styles.loading}>Satın alma hakkın doğrulanıyor…</Text></Screen>;
-  if (!draft) return <Screen><Text style={styles.loading}>Cevapların yükleniyor…</Text></Screen>;
+  if (entitlementLoading || !canUseRectification) return <Screen><Text style={[styles.loading,{color:palette.muted}]}>{t('Satın alma hakkın doğrulanıyor…')}</Text></Screen>;
+  if (!draft) return <Screen><Text style={[styles.loading,{color:palette.muted}]}>{t('Cevapların yükleniyor…')}</Text></Screen>;
   const submit = async () => {
     const validation = validateRectificationDraft(draft);
     if (validation.firstStep !== null) { router.replace({ pathname: '/rectification-form', params: { step: String(validation.firstStep), validation: '1' } }); return; }
@@ -47,12 +50,12 @@ export default function RectificationReviewScreen() {
     finally { setSubmitting(false); }
   };
   return <Screen>
-    <View style={styles.header}><Text style={styles.eyebrow}>SON KONTROL</Text><Text style={styles.title}>Cevaplarını Gözden Geçir</Text><Text style={styles.description}>Hesaplamayı başlatmadan önce her bölümü kontrol edebilir ve istediğin adıma dönebilirsin.</Text></View>
-    <View style={styles.sections}>{sections.map((section) => <View key={section.step} style={styles.sectionCard}><View style={styles.sectionCopy}><Text style={styles.sectionTitle}>{section.title}</Text><Text style={styles.sectionSummary}>{section.summary(draft)}</Text></View><Pressable accessibilityRole="button" onPress={() => router.replace({ pathname: '/rectification-form', params: { step: String(section.step) } })} style={styles.editButton}><Text style={styles.editText}>Düzenle</Text></Pressable></View>)}</View>
-    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: draft.consent }} onPress={() => setDraft({ ...draft, consent: !draft.consent })} style={styles.consent}><Ionicons name={draft.consent ? 'checkbox' : 'square-outline'} size={27} color={draft.consent ? colors.sapphire : colors.muted} /><Text style={styles.consentText}>Rektifikasyon çalışmasının yapılabilmesi için verdiğim bilgilerin bu amaçla işlenmesini kabul ediyorum.<Text style={{ color: colors.danger, fontWeight: '900' }}> *</Text></Text></Pressable>
-    <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://safircan.com/gizlilik')} style={styles.privacy}><Text style={styles.privacyText}>Gizlilik Politikası</Text><Ionicons name="open-outline" size={17} color={colors.sapphire} /></Pressable>
-    {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-    <View style={styles.actions}><Pressable onPress={() => router.replace({ pathname: '/rectification-form', params: { step: '8' } })} style={styles.back}><Text style={styles.backText}>Geri</Text></Pressable><Pressable disabled={submitting} onPress={() => void submit()} style={({ pressed }) => [styles.submit, (pressed || submitting) && styles.pressed]}><Text style={styles.submitText}>{submitting ? 'Hazırlanıyor…' : 'OTOMATİK HESAPLAMAYI BAŞLAT'}</Text></Pressable></View>
+    <View style={styles.header}><Text style={[styles.eyebrow,{color:palette.sapphire}]}>{t('SON KONTROL')}</Text><Text style={[styles.title,{color:palette.navy}]}>{t('Cevaplarını Gözden Geçir')}</Text><Text style={[styles.description,{color:palette.muted}]}>{t('Hesaplamayı başlatmadan önce her bölümü kontrol edebilir ve istediğin adıma dönebilirsin.')}</Text></View>
+    <View style={styles.sections}>{sections.map((section) => <View key={section.step} style={[styles.sectionCard,{backgroundColor:palette.surface,borderColor:palette.border}]}><View style={styles.sectionCopy}><Text style={[styles.sectionTitle,{color:palette.navy}]}>{t(section.title)}</Text><Text style={[styles.sectionSummary,{color:palette.muted}]}>{t(section.summary(draft))}</Text></View><Pressable accessibilityRole="button" onPress={() => router.replace({ pathname: '/rectification-form', params: { step: String(section.step) } })} style={styles.editButton}><Text style={styles.editText}>{t('Düzenle')}</Text></Pressable></View>)}</View>
+    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: draft.consent }} onPress={() => setDraft({ ...draft, consent: !draft.consent })} style={[styles.consent,{backgroundColor:palette.surface,borderColor:palette.border,borderWidth:1}]}><Ionicons name={draft.consent ? 'checkbox' : 'square-outline'} size={27} color={draft.consent ? palette.sapphire : palette.muted} /><Text style={[styles.consentText,{color:palette.navy}]}>{t('Rektifikasyon çalışmasının yapılabilmesi için verdiğim bilgilerin bu amaçla işlenmesini kabul ediyorum.')}<Text style={{ color: palette.danger, fontWeight: '900' }}> *</Text></Text></Pressable>
+    <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://safircan.com/gizlilik')} style={styles.privacy}><Text style={[styles.privacyText,{color:palette.sapphire}]}>{t('Gizlilik Politikası')}</Text><Ionicons name="open-outline" size={17} color={colors.sapphire} /></Pressable>
+    {error ? <Text accessibilityRole="alert" style={[styles.error,{color:palette.danger,backgroundColor:palette.surface}]}>{t(error)}</Text> : null}
+    <View style={styles.actions}><Pressable onPress={() => router.replace({ pathname: '/rectification-form', params: { step: '8' } })} style={styles.back}><Text style={styles.backText}>{t('Geri')}</Text></Pressable><Pressable disabled={submitting} onPress={() => void submit()} style={({ pressed }) => [styles.submit, (pressed || submitting) && styles.pressed]}><Text style={styles.submitText}>{t(submitting?'Hazırlanıyor…':'OTOMATİK HESAPLAMAYI BAŞLAT')}</Text></Pressable></View>
   </Screen>;
 }
 

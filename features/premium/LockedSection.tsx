@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors, layout } from '@/constants/theme';
 import { PremiumBadge } from './PremiumBadge';
+import { useLocale, usePalette } from '@/localization';
 
 type LockedSectionProps = {
   title: string;
@@ -14,33 +15,36 @@ type LockedSectionProps = {
 
 export function LockedSection({
   title,
-  description = 'Haritandaki bu alanın ayrıntılı yorumunu keşfet.',
+  description,
   onUnlock,
   compact = false,
   emphasized = false,
 }: LockedSectionProps) {
+  const { locale } = useLocale();
+  const palette = usePalette();
+  const resolvedDescription = description ?? (locale === 'tr' ? 'Haritandaki bu alanın ayrıntılı yorumunu keşfet.' : 'Explore the detailed reading for this area of your chart.');
   if (compact) {
     return (
-      <Pressable accessibilityRole="button" onPress={onUnlock} style={({ pressed }) => [styles.compactCard, emphasized && styles.emphasizedCard, pressed && styles.pressed]}>
-        <View style={styles.compactIcon}><Ionicons name="lock-closed" size={16} color={colors.gold} /></View>
-        <View style={styles.compactCopy}><Text style={styles.compactTitle}>{title}</Text><Text numberOfLines={1} style={styles.compactDescription}>{description}</Text></View>
-        <View style={styles.compactEnd}><PremiumBadge /><Ionicons name="chevron-forward" size={20} color={colors.sapphire} /></View>
+      <Pressable accessibilityRole="button" onPress={onUnlock} style={({ pressed }) => [styles.compactCard,emphasized && styles.emphasizedCard,{backgroundColor:palette.surface,borderColor:emphasized?palette.gold:palette.border},pressed && styles.pressed]}>
+        <View style={[styles.compactIcon,{backgroundColor:palette.sapphireSoft}]}><Ionicons name="lock-closed" size={16} color={palette.gold} /></View>
+        <View style={styles.compactCopy}><Text style={[styles.compactTitle,{color:palette.navy}]}>{title}</Text><Text numberOfLines={1} style={[styles.compactDescription,{color:palette.muted}]}>{resolvedDescription}</Text></View>
+        <View style={styles.compactEnd}><PremiumBadge /><Ionicons name="chevron-forward" size={20} color={palette.sapphire} /></View>
       </Pressable>
     );
   }
   return (
-    <View style={styles.card}>
+    <View style={[styles.card,{backgroundColor:palette.surface,borderColor:palette.border}]}>
       <View style={styles.topRow}>
-        <View style={styles.icon}><Ionicons name="lock-closed" size={19} color={colors.gold} /></View>
+        <View style={[styles.icon,{backgroundColor:palette.sapphireSoft}]}><Ionicons name="lock-closed" size={19} color={palette.gold} /></View>
         <PremiumBadge />
       </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+      <Text style={[styles.title,{color:palette.navy}]}>{title}</Text>
+      <Text style={[styles.description,{color:palette.muted}]}>{resolvedDescription}</Text>
       <Pressable
         accessibilityRole="button"
         onPress={onUnlock}
-        style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-        <Text style={styles.buttonText}>Premium ile Aç</Text>
+        style={({ pressed }) => [styles.button,{borderColor:palette.sapphire},pressed && styles.pressed]}>
+        <Text style={[styles.buttonText,{color:palette.sapphire}]}>{locale==='tr'?'Premium ile Aç':'Unlock with Premium'}</Text>
       </Pressable>
     </View>
   );

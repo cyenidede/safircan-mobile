@@ -8,28 +8,16 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { colors } from '@/constants/theme';
 import { useAstrologyChart } from '@/features/astrology/AstrologyChartProvider';
 import type { AstrologyChartResult, FreeNatalPlanet, SunOnlyChartResult } from '@/features/astrology/api/types';
-import { getPlacementComment, type FreePlacementKey } from '@/features/astrology/placementComments';
-import { localizeZodiacSign } from '@/features/astrology/zodiac';
+import { getPlacementComment, getPlacementCommentForLocale, type FreePlacementKey } from '@/features/astrology/placementComments';
+import { localizeZodiacSign, localizeZodiacSignForLocale } from '@/features/astrology/zodiac';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { LockedSection } from '@/features/premium';
 import { useEntitlements } from '@/features/premium/EntitlementProvider';
-
-const premiumItems = [
-  ['12 Aylık Yıllık Öngörün', 'Önündeki 12 ayın öne çıkan fırsat ve dönüşüm temalarını keşfet.'],
-  ['Aşk ve İlişki Haritan', 'Aşkta neye ihtiyaç duyduğunu ve tekrar eden ilişki kalıplarını keşfet.'],
-  ['Evlilik Potansiyelin', 'Uzun ilişki ve evlilik göstergelerinin haritanda nasıl çalıştığını gör.'],
-  ['Hayatına Çektiğin Partner Tipi', 'Seni en çok hangi karakterde insanların etkilediğini keşfet.'],
-  ['Kariyer ve Başarı Yolun', 'Hangi alanlarda daha kolay yükseldiğini ve görünür olduğunu keşfet.'],
-  ['Para Kazanma Potansiyelin', 'Para akışını güçlendiren ve zorlayan göstergelerini gör.'],
-  ['Doğuştan Gelen Yeteneklerin', 'Haritanda henüz yeterince kullanmadığın güçlü taraflarını keşfet.'],
-  ['En Güçlü ve En Zorlayıcı Yönlerin', 'Doğal avantajlarınla gelişim isteyen alanlarını birlikte gör.'],
-  ['Karmik Göstergelerin', 'Geçmişten taşıdığın temaların bugünkü seçimlerine nasıl yansıdığını incele.'],
-  ['Chiron – En Hassas Noktan', 'Hassasiyetinin zamanla nasıl bir anlayış ve güce dönüşebileceğini keşfet.'],
-  ['Lilith – Bastırdığın Tarafın', 'Geri planda tuttuğun bağımsız ve güçlü yönlerinle tanış.'],
-  ['12 Ev Analizi', 'Hayatının farklı alanlarında hangi temaların öne çıktığını keşfet.'],
-] as const;
+import { useLocale, usePalette } from '@/localization';
 
 export default function ChartResultScreen() {
+  const { locale, messages } = useLocale(); const palette=usePalette(); const free=messages.chartResultFree;
+  const localizedPremiumItems = messages.chartResultLocked.titles.split('|').map((title,index)=>[title,messages.chartResultLocked.descriptions.split('|')[index]] as const);
   const { result } = useAstrologyChart();
   const { user } = useAuth();
   const { hasEntitlement } = useEntitlements();
@@ -37,25 +25,26 @@ export default function ChartResultScreen() {
   if (!result) return <Screen><SectionHeader title="Harita sonucu bulunamadı" description="Doğum bilgilerini girerek haritanı yeniden oluşturabilirsin." /><Pressable onPress={() => router.replace('/birth-chart')} style={styles.button}><Text style={styles.buttonText}>Haritamı Oluştur</Text></Pressable></Screen>;
   if (isSunOnlyResult(result)) return <SunOnlyResult result={result} />;
 
-  const placements: Array<[FreePlacementKey, string, FreeNatalPlanet | null]> = [['sun', 'Güneş', result.chart.sun], ['moon', 'Ay', result.chart.moon], ['ascendant', 'Yükselen', result.chart.ascendant], ['mercury', 'Merkür', result.chart.mercury], ['venus', 'Venüs', result.chart.venus], ['mars', 'Mars', result.chart.mars]];
+  const planetLabels=free.planets.split('|');
+  const placements: Array<[FreePlacementKey, string, FreeNatalPlanet | null]> = [['sun', planetLabels[0], result.chart.sun], ['moon', planetLabels[1], result.chart.moon], ['ascendant', planetLabels[2], result.chart.ascendant], ['mercury', planetLabels[3], result.chart.mercury], ['venus', planetLabels[4], result.chart.venus], ['mars', planetLabels[5], result.chart.mars]];
   const openPremium = (selectedFeature?: string) => router.push({
     pathname: '/premium',
     params: selectedFeature ? { selectedFeature } : {},
   });
   const firstName = typeof user?.user_metadata.first_name === 'string' ? user.user_metadata.first_name.trim() : '';
-  const resultTitle = firstName ? `${possessiveName(firstName)} Temel Yerleşimleri` : 'Haritanın Temel Yerleşimleri';
+  const resultTitle = firstName ? free.namedTitle.replace('{name}',locale==='tr'?possessiveName(firstName):firstName) : free.title;
 
   return <Screen>
-    <SectionHeader eyebrow="ÜCRETSİZ HARİTAN" title={resultTitle} description="Doğduğunda gökyüzündeki izler." />
+    <SectionHeader eyebrow={free.eyebrow} title={resultTitle} description={free.description} />
     {result.warning ? <Text style={styles.warning}>{result.warning}</Text> : null}
-    <View style={styles.placements}>{placements.map(([key, label, planet]) => <View key={key} style={styles.placement}><View style={styles.placementTop}><View style={styles.placementNameRow}><Text style={styles.label}>{label}</Text><Text style={styles.separator}> — </Text><Text numberOfLines={1} style={styles.sign}>{planet ? localizeZodiacSign(planet.sign) : 'Hesaplanamadı'}</Text></View>{planet ? <Text style={styles.degree}>{formatDegree(planet.degree)}</Text> : null}</View>{planet ? <Text numberOfLines={2} style={styles.comment}>{getPlacementComment(key, planet.sign)}</Text> : <Text numberOfLines={2} style={styles.comment}>Doğum saati bilinmediğinde bu yerleşim güvenilir biçimde hesaplanamaz.</Text>}</View>)}</View>
-    {hasEntitlement('full_chart') ? <Pressable accessibilityRole="button" onPress={() => router.push('/full-chart')} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>TAM DOĞUM HARİTAMI GÖR</Text></Pressable> : hasEntitlement('annual_forecast') ? <Pressable accessibilityRole="button" onPress={() => router.push('/annual-forecast')} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>12 AYLIK ÖNGÖRÜMÜ GÖR</Text></Pressable> : <View style={styles.premiumSection}>
-      <Text style={styles.premiumTitle}>Haritanda Daha Fazlası Var</Text>
-      <Text style={styles.premiumDescription}>İlişkilerin, kariyer yönün, para potansiyelin, karmik derslerin ve önündeki 12 aylık dönem haritanda daha derin katmanlarda saklı.</Text>
-      <View style={styles.premiumCards}>{premiumItems.slice(0, 6).map(([title, description], index) => <LockedSection compact emphasized={index === 0} key={title} title={title} description={description} onUnlock={() => openPremium(title)} />)}</View>
-      <Pressable accessibilityRole="button" onPress={() => openPremium()} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>TÜM HARİTAMI AÇ</Text></Pressable>
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showAllPremium }} onPress={() => setShowAllPremium((current) => !current)} style={({ pressed }) => [styles.showAllButton, pressed && styles.pressed]}><Text style={styles.showAllText}>{showAllPremium ? 'Premium Başlıklarını Gizle' : 'Tüm Premium Başlıklarını Gör'}</Text><Ionicons name={showAllPremium ? 'chevron-up' : 'chevron-down'} size={20} color={colors.sapphire} /></Pressable>
-      {showAllPremium ? <View style={styles.premiumCards}>{premiumItems.slice(6).map(([title, description]) => <LockedSection compact key={title} title={title} description={description} onUnlock={() => openPremium(title)} />)}</View> : null}
+    <View style={styles.placements}>{placements.map(([key, label, planet]) => <View key={key} style={[styles.placement,{backgroundColor:palette.surface,borderColor:palette.border}]}><View style={styles.placementTop}><View style={styles.placementNameRow}><Text style={[styles.label,{color:palette.sapphire}]}>{label}</Text><Text style={[styles.separator,{color:palette.muted}]}> — </Text><Text numberOfLines={1} style={[styles.sign,{color:palette.navy}]}>{planet ? localizeZodiacSignForLocale(planet.sign,locale) : free.unavailable}</Text></View>{planet ? <Text style={[styles.degree,{color:palette.muted}]}>{formatDegree(planet.degree)}</Text> : null}</View>{planet ? <Text numberOfLines={2} style={[styles.comment,{color:palette.muted}]}>{getPlacementCommentForLocale(key, planet.sign,locale)}</Text> : <Text numberOfLines={2} style={[styles.comment,{color:palette.muted}]}>{free.unknownPlacement}</Text>}</View>)}</View>
+    {hasEntitlement('full_chart') ? <Pressable accessibilityRole="button" onPress={() => router.push('/full-chart')} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>{free.fullAccess}</Text></Pressable> : hasEntitlement('annual_forecast') ? <Pressable accessibilityRole="button" onPress={() => router.push('/annual-forecast')} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>{free.annualAccess}</Text></Pressable> : <View style={styles.premiumSection}>
+      <Text style={[styles.premiumTitle,{color:palette.navy}]}>{free.moreTitle}</Text>
+      <Text style={[styles.premiumDescription,{color:palette.muted}]}>{free.moreDescription}</Text>
+      <View style={styles.premiumCards}>{localizedPremiumItems.slice(0, 6).map(([title, description], index) => <LockedSection compact emphasized={index === 0} key={title} title={title} description={description} onUnlock={() => openPremium(title)} />)}</View>
+      <Pressable accessibilityRole="button" onPress={() => openPremium()} style={({ pressed }) => [styles.premiumButton, pressed && styles.pressed]}><Text style={styles.premiumButtonText}>{free.unlock}</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showAllPremium }} onPress={() => setShowAllPremium((current) => !current)} style={({ pressed }) => [styles.showAllButton, pressed && styles.pressed]}><Text style={[styles.showAllText,{color:palette.sapphire}]}>{showAllPremium ? free.hideAll : free.viewAll}</Text><Ionicons name={showAllPremium ? 'chevron-up' : 'chevron-down'} size={20} color={palette.sapphire} /></Pressable>
+      {showAllPremium ? <View style={styles.premiumCards}>{localizedPremiumItems.slice(6).map(([title, description]) => <LockedSection compact key={title} title={title} description={description} onUnlock={() => openPremium(title)} />)}</View> : null}
     </View>}
   </Screen>;
 }

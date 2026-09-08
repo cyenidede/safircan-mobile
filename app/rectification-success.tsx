@@ -4,15 +4,17 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import { colors } from '@/constants/theme';
+import { usePalette } from '@/localization';
+import { useRectificationText } from '@/features/rectification/presentation';
 
 export default function RectificationProcessingScreen() {
-  return <Screen>
+  const palette=usePalette(); const t=useRectificationText(); return <Screen>
     <View style={styles.content}>
       <View style={styles.icon}><Ionicons name="sparkles-outline" size={36} color={colors.white} /></View>
-      <Text style={styles.title}>Doğum Saatin Hesaplanıyor</Text>
-      <Text style={styles.text}>Yaşam olayların aday doğum saatleriyle güvenli sunucuda astrolojik olarak karşılaştırılacak.</Text>
-      <Text style={styles.note}>Hesaplama tamamlandığında yalnızca en güçlü eşleşen saat ve yükselen burcun gösterilecek.</Text>
-      <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)/profile')} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>PROFİLE GİT</Text></Pressable>
+      <Text style={[styles.title,{color:palette.navy}]}>{t('Doğum Saatin Hesaplanıyor')}</Text>
+      <Text style={[styles.text,{color:palette.navy}]}>{t('Yaşam olayların aday doğum saatleriyle güvenli sunucuda astrolojik olarak karşılaştırılacak.')}</Text>
+      <Text style={[styles.note,{color:palette.muted}]}>{t('Hesaplama tamamlandığında yalnızca en güçlü eşleşen saat ve yükselen burcun gösterilecek.')}</Text>
+      <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)/profile')} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{t('PROFİLE GİT')}</Text></Pressable>
     </View>
   </Screen>;
 }

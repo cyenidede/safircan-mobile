@@ -7,13 +7,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   communication: 'İletişim',
   longTerm: 'Uzun Vadeli Potansiyel',
 };
+const CATEGORY_LABELS_EN: Record<string,string>={attraction:'Attraction',emotional:'Emotional Compatibility',communication:'Communication',longTerm:'Long-Term Potential'};
 
-export function orderedMatchCategories(match: SoulmateMatch) {
+export function orderedMatchCategories(match: SoulmateMatch, locale:'tr'|'en'='tr') {
   const byId = new Map(match.categories.map((category) => [category.id, category]));
   return CATEGORY_ORDER.flatMap((id) => {
     const category = byId.get(id);
     return category && Number.isFinite(category.score)
-      ? [{ ...category, label: CATEGORY_LABELS[id] ?? category.label }]
+      ? [{ ...category, label: (locale==='tr'?CATEGORY_LABELS:CATEGORY_LABELS_EN)[id] ?? category.label }]
       : [];
   });
 }

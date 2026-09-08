@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from '@/constants/theme';
+import { colors, darkColors } from '@/constants/theme';
 import { useLocale } from '@/localization';
 
 type TabId = 'home' | 'chart' | 'ask' | 'discover' | 'profile';
@@ -32,7 +32,8 @@ function activeTab(pathname: string): TabId {
 }
 
 export function GlobalTabBar() {
-  const { messages } = useLocale();
+  const { colorScheme, messages } = useLocale();
+  const palette = colorScheme === 'dark' ? darkColors : colors;
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -41,7 +42,7 @@ export function GlobalTabBar() {
     const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
     return () => { show.remove(); hide.remove(); };
   }, []);
-  if (hiddenRoutes.has(pathname) || keyboardVisible) return null;
+  if (hiddenRoutes.has(pathname) || pathname.startsWith('/legal/') || keyboardVisible) return null;
   const active = activeTab(pathname);
   const navigate = (tab: Tab) => {
     if (__DEV__) console.log(`[global-tabs] press=${tab.id}`);
@@ -49,25 +50,23 @@ export function GlobalTabBar() {
     router.replace(tab.href);
   };
 
-  return <View accessibilityRole="tablist" style={[styles.bar, { height: 62 + insets.bottom, paddingBottom: insets.bottom }]}>
+  return <View accessibilityRole="tablist" style={[styles.bar, { backgroundColor: palette.surface, borderTopColor: palette.border, height: 62 + insets.bottom, paddingBottom: insets.bottom }]}>
     {tabs.map((tab) => {
       const selected = tab.id === active;
       const label = messages.nav[tab.id];
       return <Pressable accessibilityLabel={label} accessibilityRole="tab" accessibilityState={{ selected }} hitSlop={4} key={tab.id} onPress={() => navigate(tab)} style={({ pressed }) => [styles.item, tab.id === 'ask' && styles.askItem, pressed && styles.pressed]}>
-        <View style={tab.id === 'ask' ? [styles.askIcon, selected && styles.askIconActive] : undefined}><Ionicons color={tab.id === 'ask' ? (selected ? colors.white : colors.sapphire) : selected ? colors.sapphire : colors.muted} name={selected ? tab.activeIcon : tab.icon} size={tab.id === 'ask' ? 25 : 24} /></View>
-        <Text style={[styles.label, selected && styles.activeLabel]}>{label}</Text>
+        <View style={tab.id === 'ask' ? [styles.askIcon, { backgroundColor: palette.sapphireSoft, borderColor: palette.surface }, selected && { backgroundColor: palette.sapphire }] : undefined}><Ionicons color={tab.id === 'ask' ? (selected ? palette.white : palette.sapphire) : selected ? palette.sapphire : palette.muted} name={selected ? tab.activeIcon : tab.icon} size={tab.id === 'ask' ? 25 : 24} /></View>
+        <Text style={[styles.label, { color: selected ? palette.sapphire : palette.muted }]}>{label}</Text>
       </Pressable>;
     })}
   </View>;
 }
 
 const styles = StyleSheet.create({
-  bar: { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, elevation: 16, flexDirection: 'row', paddingTop: 7, zIndex: 20 },
+  bar: { borderTopWidth: StyleSheet.hairlineWidth, elevation: 16, flexDirection: 'row', paddingTop: 7, zIndex: 20 },
   item: { alignItems: 'center', flex: 1, gap: 3, justifyContent: 'center', minHeight: 54, minWidth: 0 },
   askItem: { marginTop: -10 },
-  askIcon: { alignItems: 'center', backgroundColor: colors.sapphireSoft, borderColor: colors.surface, borderRadius: 22, borderWidth: 3, height: 44, justifyContent: 'center', width: 44 },
-  askIconActive: { backgroundColor: colors.sapphire },
-  label: { color: colors.muted, fontSize: 11, fontWeight: '600' },
-  activeLabel: { color: colors.sapphire },
+  askIcon: { alignItems: 'center', borderRadius: 22, borderWidth: 3, height: 44, justifyContent: 'center', width: 44 },
+  label: { fontSize: 11, fontWeight: '600' },
   pressed: { opacity: 0.65 },
 });

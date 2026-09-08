@@ -10,8 +10,11 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useEntitlements } from '@/features/premium/EntitlementProvider';
 import { useIAP } from '@/features/iap';
 import { loadRectificationDraft } from '@/features/rectification/draftStorage';
+import { useLocale, usePalette } from '@/localization';
+import { useRectificationText } from '@/features/rectification/presentation';
 
 export default function RectificationScreen() {
+  const palette=usePalette(); const {messages}=useLocale(); const t=useRectificationText();
   const { user } = useAuth();
   const { hasEntitlement } = useEntitlements();
   const [hasDraft, setHasDraft] = useState(false);
@@ -40,31 +43,31 @@ export default function RectificationScreen() {
 
   return <Screen>
     <View style={styles.hero}>
-      <View style={styles.icon}><Ionicons name="time-outline" size={30} color={colors.gold} /></View>
-      <Text style={styles.eyebrow}>DOĞUM SAATİ REKTİFİKASYONU</Text>
-      <Text style={styles.title}>Doğum Saatini Hesaplayalım</Text>
-      <Text style={styles.description}>Yaşamındaki önemli olayları astrolojik olarak karşılaştıran otomatik rektifikasyon çalışması.</Text>
+      <View style={[styles.icon,{backgroundColor:palette.sapphireSoft}]}><Ionicons name="time-outline" size={30} color={palette.gold} /></View>
+      <Text style={[styles.eyebrow,{color:palette.sapphire}]}>{t('DOĞUM SAATİ REKTİFİKASYONU')}</Text>
+      <Text style={[styles.title,{color:palette.navy}]}>{t('Doğum Saatini Hesaplayalım')}</Text>
+      <Text style={[styles.description,{color:palette.muted}]}>{t('Yaşamındaki önemli olayları astrolojik olarak karşılaştıran otomatik rektifikasyon çalışması.')}</Text>
     </View>
 
-    {user ? <View style={styles.accountCard}>
+    {user ? <View style={[styles.accountCard,{backgroundColor:palette.sapphireSoft,borderColor:palette.border}]}>
       <Ionicons name="person-circle-outline" size={24} color={colors.sapphire} />
       <View style={styles.accountCopy}>
-        <Text style={styles.accountTitle}>{firstName ? `${firstName}, hesabın hazır` : 'Hesabın hazır'}</Text>
-        <Text style={styles.accountText}>{user.email}</Text>
+        <Text style={[styles.accountTitle,{color:palette.navy}]}>{t(firstName ? `${firstName}, hesabın hazır` : 'Hesabın hazır')}</Text>
+        <Text style={[styles.accountText,{color:palette.muted}]}>{user.email}</Text>
       </View>
     </View> : null}
 
-    <View style={styles.card}>
-      <View style={styles.productHeading}><Text style={styles.productTitle}>{product.title}</Text>{price ? <Text style={styles.price}>{price}</Text> : null}</View>
-      <Text style={styles.cardTitle}>Nasıl ilerleyecek?</Text>
+    <View style={[styles.card,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+      <View style={styles.productHeading}><Text style={[styles.productTitle,{color:palette.navy}]}>{t(product.title)}</Text>{price ? <Text style={[styles.price,{color:palette.gold}]}>{price}</Text> : null}</View>
+      <Text style={[styles.cardTitle,{color:palette.navy}]}>{t('Nasıl ilerleyecek?')}</Text>
       <View style={styles.steps}>
-        <Step number="1" text="Rektifikasyon ürününü satın al." />
-        <Step number="2" text="Satın alma hakkın doğrulandıktan sonra 8 adımlık formu tamamla." />
-        <Step number="3" text="Otomatik hesaplama tamamlandığında tek doğum saatini gör ve profiline kaydet." />
+        <Step number="1" text={t('Rektifikasyon ürününü satın al.')} />
+        <Step number="2" text={t('Satın alma hakkın doğrulandıktan sonra 8 adımlık formu tamamla.')} />
+        <Step number="3" text={t('Otomatik hesaplama tamamlandığında tek doğum saatini gör ve profiline kaydet.')} />
       </View>
-      <Text style={styles.paidNotice}>Form, ödeme tamamlanmadan açılmaz.</Text>
+      <Text style={[styles.paidNotice,{backgroundColor:palette.sapphireSoft,color:palette.navy}]}>{t('Form, ödeme tamamlanmadan açılmaz.')}</Text>
       <Pressable accessibilityRole="button" disabled={purchasing === product.id} onPress={() => { void handlePrimaryAction(); }} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
-        <Text style={styles.ctaText}>{canStart ? (hasDraft ? 'FORMA DEVAM ET' : '8 ADIMLIK FORMA BAŞLA') : purchasing === product.id ? 'APP STORE AÇILIYOR…' : price ? `${product.ctaLabel} — ${price}` : product.ctaLabel}</Text>
+        <Text style={styles.ctaText}>{canStart ? t(hasDraft ? 'FORMA DEVAM ET' : '8 ADIMLIK FORMA BAŞLA') : purchasing === product.id ? t('APP STORE AÇILIYOR…') : price ? `${messages.premiumScreen.rectificationCta} — ${price}` : messages.premiumScreen.rectificationCta}</Text>
       </Pressable>
       {notice ? <View accessibilityLiveRegion="polite" style={styles.notice}><Ionicons name="information-circle-outline" size={20} color={colors.sapphire} /><Text style={styles.noticeText}>{notice}</Text></View> : null}
     </View>
@@ -72,7 +75,7 @@ export default function RectificationScreen() {
 }
 
 function Step({ number, text }: { number: string; text: string }) {
-  return <View style={styles.step}><View style={styles.stepNumber}><Text style={styles.stepNumberText}>{number}</Text></View><Text style={styles.stepText}>{text}</Text></View>;
+  const palette=usePalette(); return <View style={styles.step}><View style={[styles.stepNumber,{backgroundColor:palette.sapphireSoft}]}><Text style={[styles.stepNumberText,{color:palette.sapphire}]}>{number}</Text></View><Text style={[styles.stepText,{color:palette.navy}]}>{text}</Text></View>;
 }
 
 const styles = StyleSheet.create({

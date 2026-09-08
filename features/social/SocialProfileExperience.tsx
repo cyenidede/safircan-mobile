@@ -6,16 +6,17 @@ import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } fr
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { colors } from '@/constants/theme';
-import { localizeZodiacSign } from '@/features/astrology/zodiac';
+import { localizeZodiacSignForLocale } from '@/features/astrology/zodiac';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useLocale, usePalette } from '@/localization';
 import { getPublicSocialProfile, getSocialHome, moderateUser, startConversation, type PublicSocialProfile, type SocialUsage, type SoulmateMatch } from './api';
 import { orderedMatchCategories } from './soulmatePresentation';
 
 const zodiacSymbols: Readonly<Record<string, string>> = { Aries:'♈',Taurus:'♉',Gemini:'♊',Cancer:'♋',Leo:'♌',Virgo:'♍',Libra:'♎',Scorpio:'♏',Sagittarius:'♐',Capricorn:'♑',Aquarius:'♒',Pisces:'♓' };
-const relationshipStatusLabel = { single: 'Bekâr', married: 'Evli', prefer_not_to_say: 'Belirtmek istemiyor' } as const;
-const relationshipIntentLabel = { serious: 'Ciddi ilişki', meet: 'Tanışma', friendship: 'Arkadaşlık' } as const;
 
 export function SocialProfileExperience() {
+  const {locale,messages}=useLocale(); const palette=usePalette(); const m=messages.socialUi; const c=messages.community;
+  const relationshipStatusLabel={single:c.single,married:c.married,prefer_not_to_say:c.private}; const relationshipIntentLabel={serious:c.serious,meet:c.meet,friendship:c.friendship};
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { session, user } = useAuth();
   const [profile, setProfile] = useState<PublicSocialProfile | null>(null);
@@ -28,7 +29,7 @@ export function SocialProfileExperience() {
     if (!session?.access_token || !userId) return;
     Promise.all([getPublicSocialProfile(session.access_token, userId), getSocialHome(session.access_token)])
       .then(([result, social]) => { setProfile(result.profile); setMatch(result.match); setUsage(social.usage); })
-      .catch(() => setError('Bu profil şu anda görüntülenemiyor.'));
+      .catch(() => setError(m.viewError));
   }, [session?.access_token, userId]);
 
   const chat = async () => {
@@ -37,39 +38,35 @@ export function SocialProfileExperience() {
     try {
       const result = await startConversation(session.access_token, profile.userId);
       router.push({ pathname: '/private-chat', params: { conversationId: result.conversationId, handle: profile.handle, targetUserId: profile.userId } } as unknown as Href);
-    } catch { setError('Konuşma şu anda başlatılamadı.'); }
+    } catch { setError(messages.soulmate.chatError); }
   };
 
   const report = (reportType: 'user' | 'photo') => {
     if (!session?.access_token || !profile || ownProfile) return;
     void moderateUser(session.access_token, { action:'report', reportedUserId:profile.userId, reportType, photoReference:reportType === 'photo' ? 'current_profile_photo' : undefined, reason:reportType === 'photo' ? 'Fotoğraf incelemesi' : 'Profil incelemesi' })
-      .then(() => Alert.alert('Teşekkürler', 'Şikâyetin inceleme için alındı.'))
-      .catch(() => Alert.alert('İşlem tamamlanamadı', 'Biraz sonra tekrar deneyebilirsin.'));
+      .then(() => Alert.alert(m.thanks,m.reportReceived)).catch(() => Alert.alert(m.actionFailed,m.tryLater));
   };
   const block = () => {
     if (!session?.access_token || !profile || ownProfile) return;
-    Alert.alert('Kullanıcıyı engelle', 'Bu kullanıcı artık eşleşmelerinde ve sohbetlerinde görünmeyecek.', [{ text:'Vazgeç', style:'cancel' }, { text:'Engelle', style:'destructive', onPress:() => void moderateUser(session.access_token, { action:'block', targetUserId:profile.userId }).then(() => router.back()) }]);
+    Alert.alert(m.blockTitle,m.blockCopy,[{text:m.cancel,style:'cancel'},{text:m.block,style:'destructive',onPress:()=>void moderateUser(session.access_token,{action:'block',targetUserId:profile.userId}).then(()=>router.back())}]);
   };
   const securityMenu = () => {
     if (!profile || ownProfile) return;
     const options = [
-      { text:'Engelle', style:'destructive' as const, onPress:block },
-      { text:'Şikâyet Et', onPress:() => report('user') },
-      ...(profile.photoUrl ? [{ text:'Fotoğrafı Şikâyet Et', onPress:() => report('photo') }] : []),
-      { text:'Vazgeç', style:'cancel' as const },
+      {text:m.block,style:'destructive' as const,onPress:block},{text:m.reportUser,onPress:()=>report('user')},...(profile.photoUrl?[{text:m.reportPhoto,onPress:()=>report('photo')}]:[]),{text:m.cancel,style:'cancel' as const},
     ];
-    Alert.alert('Güvenlik', 'Yapmak istediğin işlemi seç.', options);
+    Alert.alert(m.safety,m.chooseAction,options);
   };
 
   if (!profile && !error) return <Screen><ActivityIndicator color={colors.sapphire} size="large" /></Screen>;
   if (!profile) return <Screen><Text style={styles.error}>{error}</Text></Screen>;
-  const categories = match ? orderedMatchCategories(match) : [];
-  const sign = profile.sunSign ? `${localizeZodiacSign(profile.sunSign)} ${zodiacSymbols[profile.sunSign] ?? ''}`.trim() : null;
+  const categories = match ? orderedMatchCategories(match,locale) : [];
+  const sign = profile.sunSign ? `${localizeZodiacSignForLocale(profile.sunSign,locale)} ${zodiacSymbols[profile.sunSign] ?? ''}`.trim() : null;
   return <Screen>
-    <View style={styles.headerRow}><View style={styles.headerCopy}><SectionHeader eyebrow="GÜVENLİ PROFİL" title={profile.handle ? `@${profile.handle}` : 'SafirCan kullanıcısı'} description="Yalnız kullanıcının paylaşmayı seçtiği bilgiler gösterilir." /></View>{!ownProfile ? <Pressable accessibilityLabel="Güvenlik seçenekleri" hitSlop={8} onPress={securityMenu} style={styles.menu}><Ionicons color={colors.navy} name="ellipsis-horizontal" size={24} /></Pressable> : null}</View>
-    <View style={styles.card}>{profile.photoUrl ? <Image resizeMode="cover" source={{ uri:profile.photoUrl }} style={styles.photo} /> : <View style={styles.photoPlaceholder}><Text style={styles.photoLetter}>S</Text></View>}{sign ? <Text style={styles.meta}>{sign}</Text> : null}{profile.city ? <Text style={styles.meta}>{profile.city}</Text> : null}{profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}<View style={styles.preferenceRow}><Text style={styles.preference}>{relationshipStatusLabel[profile.relationshipStatus]}</Text><Text style={styles.preference}>{relationshipIntentLabel[profile.relationshipIntent]}</Text></View></View>
-    {match ? <View style={styles.match}><Text style={styles.matchTitle}>Astrolojik Uyumunuz</Text><Text style={styles.score}>%{Math.round(match.score)}</Text>{categories.map((item) => <View key={item.id} style={styles.row}><Text style={styles.rowLabel}>{item.label}</Text><Text style={styles.rowValue}>{item.level}</Text></View>)}</View> : null}
-    {!ownProfile ? <Pressable onPress={() => void chat()} style={styles.primary}><Text style={styles.primaryText}>MESAJ GÖNDER</Text></Pressable> : null}
+    <View style={styles.headerRow}><View style={styles.headerCopy}><SectionHeader eyebrow={m.safeProfile} title={profile.handle ? `@${profile.handle}` : m.user} description={m.safeProfileCopy} /></View>{!ownProfile ? <Pressable accessibilityLabel={m.safetyOptions} hitSlop={8} onPress={securityMenu} style={[styles.menu,{backgroundColor:palette.surface}]}><Ionicons color={palette.navy} name="ellipsis-horizontal" size={24} /></Pressable> : null}</View>
+    <View style={[styles.card,{backgroundColor:palette.surface}]}>{profile.photoUrl ? <Image resizeMode="cover" source={{ uri:profile.photoUrl }} style={styles.photo} /> : <View style={styles.photoPlaceholder}><Text style={styles.photoLetter}>S</Text></View>}{sign ? <Text style={[styles.meta,{color:palette.muted}]}>{sign}</Text> : null}{profile.city ? <Text style={[styles.meta,{color:palette.muted}]}>{profile.city}</Text> : null}{profile.bio ? <Text style={[styles.bio,{color:palette.navy}]}>{profile.bio}</Text> : null}<View style={styles.preferenceRow}><Text style={styles.preference}>{relationshipStatusLabel[profile.relationshipStatus]}</Text><Text style={styles.preference}>{relationshipIntentLabel[profile.relationshipIntent]}</Text></View></View>
+    {match ? <View style={[styles.match,{backgroundColor:palette.surface,borderColor:palette.border,borderWidth:1}]}><Text style={[styles.matchTitle,{color:palette.navy}]}>{m.compatibility}</Text><Text style={[styles.score,{color:palette.sapphire}]}>%{Math.round(match.score)}</Text>{categories.map((item) => <View key={item.id} style={styles.row}><Text style={[styles.rowLabel,{color:palette.muted}]}>{item.label}</Text><Text style={styles.rowValue}>{item.level}</Text></View>)}</View> : null}
+    {!ownProfile ? <Pressable onPress={() => void chat()} style={styles.primary}><Text style={styles.primaryText}>{m.sendMessage}</Text></Pressable> : null}
     {error ? <Text style={styles.error}>{error}</Text> : null}
   </Screen>;
 }
