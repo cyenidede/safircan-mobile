@@ -10,9 +10,11 @@ import { EntitlementProvider } from '@/features/premium/EntitlementProvider';
 import { GlobalTabBar } from '@/components/GlobalTabBar';
 import { SocialNotificationProvider } from '@/features/social/SocialNotificationProvider';
 import { LocaleProvider, useLocale } from '@/localization';
+import { AccountLifecycleProvider } from '@/features/account/AccountLifecycleProvider';
+import { AccountLifecycleGate } from '@/features/account/AccountLifecycleGate';
 
 export default function RootLayout() {
-  return <SafeAreaProvider><AuthProvider><LocaleProvider><AppShell /></LocaleProvider></AuthProvider></SafeAreaProvider>;
+  return <SafeAreaProvider><AuthProvider><LocaleProvider><AccountLifecycleProvider><AccountLifecycleGate><AppShell /></AccountLifecycleGate></AccountLifecycleProvider></LocaleProvider></AuthProvider></SafeAreaProvider>;
 }
 
 function AppShell() {
@@ -53,6 +55,7 @@ function AppShell() {
     <Stack.Screen name="sign-in" options={{ title: messages.routes.signIn, ...authHeader }} />
     <Stack.Screen name="settings" options={{ headerShown: false }} />
     <Stack.Screen name="legal/[document]" options={{ headerShown: false }} />
+    <Stack.Screen name="account/deletion" options={{ headerShown: false }} />
   </Stack></View><GlobalTabBar /></View></AstrologyChartProvider></IAPProvider></EntitlementProvider></SocialNotificationProvider>;
 }
 

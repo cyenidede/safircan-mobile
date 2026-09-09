@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { colors, darkColors } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useLocale, type LocalePreference, type ThemePreference } from '@/localization';
+import { useAccountLifecycle } from '@/features/account/AccountLifecycleProvider';
 
 type Selector = 'theme' | 'locale' | null;
 const themes: ThemePreference[] = ['system', 'light', 'dark'];
@@ -14,6 +15,7 @@ const locales: LocalePreference[] = ['system', 'tr', 'en'];
 export default function SettingsScreen() {
   const { loading: authLoading, session } = useAuth();
   const preferences = useLocale();
+  const account = useAccountLifecycle();
   const [selector, setSelector] = useState<Selector>(null);
   const palette = preferences.colorScheme === 'dark' ? darkColors : colors;
   const messages = preferences.messages.settings;
@@ -60,7 +62,7 @@ export default function SettingsScreen() {
       <Divider palette={palette} />
       <Toggle disabled={disabled} label={messages.autoAcceptGroupInvites} value={preferences.autoAcceptGroupInvites} onChange={(value) => void preferences.setAutoAcceptGroupInvites(value)} palette={palette} />
     </Section>
-    <Section title={messages.account} palette={palette}><View style={styles.row}><Text style={[styles.text, { color: palette.navy }]}>{messages.accountStatus}</Text><Text accessibilityLabel={`${messages.accountStatus}: ${messages[preferences.accountStatus]}`} style={[styles.status, { backgroundColor: palette.sapphireSoft, color: palette.sapphire }]}>{messages[preferences.accountStatus]}</Text></View></Section>
+    <Section title={messages.account} palette={palette}><View style={styles.row}><Text style={[styles.text, { color: palette.navy }]}>{messages.accountStatus}</Text><Text style={[styles.status, { backgroundColor: palette.sapphireSoft, color: palette.sapphire }]}>{messages[preferences.accountStatus]}</Text></View><Divider palette={palette}/><Pressable style={styles.row} onPress={()=>Alert.alert(preferences.locale==='tr'?'Hesabını duraklatmak istiyor musun?':'Pause your account?',preferences.locale==='tr'?'Profilin keşfetten gizlenir ve yeni mesaj veya bildirim almazsın. Haritan, soruların ve satın almaların korunur. İstediğin zaman yeniden etkinleştirebilirsin.':"Your profile will be hidden from discovery and you won't receive new messages or notifications. Your chart, questions, and purchases will remain available when you return.",[{text:preferences.locale==='tr'?'Vazgeç':'Cancel',style:'cancel'},{text:preferences.locale==='tr'?'Hesabı Duraklat':'Pause Account',onPress:()=>void account.pause()}])}><Text style={[styles.text,{color:palette.navy}]}>{preferences.locale==='tr'?'Hesabı duraklat':'Pause account'}</Text><Ionicons name="chevron-forward" size={18} color={palette.muted}/></Pressable><Divider palette={palette}/><Pressable style={styles.row} onPress={()=>router.push('/account/deletion')}><Text style={[styles.text,{color:palette.danger}]}>{preferences.locale==='tr'?'Hesabı sil':'Delete account'}</Text><Ionicons name="chevron-forward" size={18} color={palette.danger}/></Pressable></Section>
     <Section title={messages.legal} palette={palette}>{[
       ['/legal/privacy', messages.privacyPolicy],
       ['/legal/terms', messages.terms],

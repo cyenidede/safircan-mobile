@@ -42,7 +42,7 @@ export function GlobalTabBar() {
     const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
     return () => { show.remove(); hide.remove(); };
   }, []);
-  if (hiddenRoutes.has(pathname) || pathname.startsWith('/legal/') || keyboardVisible) return null;
+  if (hiddenRoutes.has(pathname) || pathname.startsWith('/legal/') || pathname.startsWith('/account/') || keyboardVisible) return null;
   const active = activeTab(pathname);
   const navigate = (tab: Tab) => {
     if (__DEV__) console.log(`[global-tabs] press=${tab.id}`);
