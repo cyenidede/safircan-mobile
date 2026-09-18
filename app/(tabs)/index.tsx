@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { colors } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { PersonalizedHomeSection } from '@/features/personalized/PersonalizedHomeSection';
 import { useLocale, usePalette } from '@/localization';
 
 export default function HomeScreen() {
@@ -18,6 +19,8 @@ export default function HomeScreen() {
         <View style={styles.mark}><Text style={styles.markText}>S</Text></View>
         <Text style={[styles.brand, { color: palette.navy }]}>{messages.home.brand}</Text>
       </View>
+
+      <PersonalizedHomeSection />
 
       <View style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={styles.orbit}>

@@ -10,6 +10,10 @@ export class ApiRequestError extends Error {
 
 export async function requestJson<T>(path: string, init: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS, onResponse?: (diagnostic: ApiResponseDiagnostic) => void) {
   const controller = new AbortController();
+  const externalSignal = init.signal;
+  const abortFromExternal = () => controller.abort();
+  if (externalSignal?.aborted) controller.abort();
+  else externalSignal?.addEventListener('abort', abortFromExternal, { once: true });
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const url = `${API_BASE_URL}${path}`;
   try {
@@ -32,5 +36,6 @@ export async function requestJson<T>(path: string, init: RequestInit, timeoutMs 
     throw new ApiRequestError('network');
   } finally {
     clearTimeout(timeout);
+    externalSignal?.removeEventListener('abort', abortFromExternal);
   }
 }
