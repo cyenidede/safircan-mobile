@@ -1,4 +1,6 @@
-export const API_BASE_URL = 'https://safircan.com';
+import { publicConfig } from '@/lib/env';
+
+export const API_BASE_URL = publicConfig.apiBaseUrl;
 const DEFAULT_TIMEOUT_MS = 20_000;
 export type ApiResponseDiagnostic = { url: string; status: number; data: unknown };
 
