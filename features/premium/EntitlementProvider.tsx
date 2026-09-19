@@ -2,6 +2,7 @@ import { createContext, type PropsWithChildren, useContext, useEffect, useMemo, 
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasEntitlement as entitlementSatisfies } from '@/features/premium/entitlements';
+import { API_BASE_URL } from '@/lib/api';
 import type { Entitlement } from '@/types/entitlement';
 
 type EntitlementContextValue = { entitlements: readonly Entitlement[]; loading: boolean; refreshEntitlements: () => Promise<void>; hasEntitlement: (required: Entitlement) => boolean };
@@ -16,7 +17,7 @@ export function EntitlementProvider({ children }: PropsWithChildren) {
   const refreshEntitlements = async () => {
     if (!session?.access_token) { setEntitlements(['free']); setLoading(false); return; }
     setLoading(true);
-    await fetch('https://safircan.com/api/entitlements', { headers: { Accept: 'application/json', Authorization: `Bearer ${session.access_token}` } })
+    await fetch(`${API_BASE_URL}/api/entitlements`, { headers: { Accept: 'application/json', Authorization: `Bearer ${session.access_token}` } })
       .then(async (response) => { const data = await response.json() as { success?: boolean; entitlements?: unknown[] }; if (!response.ok || !data.success) throw new Error('entitlements'); return (data.entitlements ?? []).filter((item): item is Entitlement => typeof item === 'string' && productIds.includes(item as Entitlement)); })
       .then((verified) => setEntitlements(['free', ...verified]))
       .catch(() => setEntitlements(['free']))

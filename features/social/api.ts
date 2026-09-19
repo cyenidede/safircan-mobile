@@ -1,6 +1,5 @@
+import { API_BASE_URL } from '@/lib/api';
 import { normalizeMessageTimestamp } from './messageTime';
-
-const API_BASE_URL = 'https://safircan.com';
 
 export type SocialUsage = { allowed: boolean; subscribed: boolean; freeMessagesUsed: number; freeMessagesRemaining: number };
 export type RelationshipStatus = 'single' | 'married' | 'prefer_not_to_say';
