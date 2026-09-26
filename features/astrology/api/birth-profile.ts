@@ -1,4 +1,6 @@
-const ENDPOINT = 'https://safircan.com/api/birth-profile';
+import { API_BASE_URL } from '@/lib/api';
+
+const ENDPOINT = API_BASE_URL + '/api/birth-profile';
 
 export type AuthenticatedBirthProfile = {
   first_name: string;

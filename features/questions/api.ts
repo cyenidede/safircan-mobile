@@ -1,6 +1,6 @@
 import { isQuestionCategory, isQuestionStatus, type QuestionCategory, type QuestionStatus } from './domain';
 
-const API_BASE_URL = 'https://safircan.com';
+import { API_BASE_URL } from '@/lib/api';
 export type CatalogQuestion = { id: string; category: QuestionCategory; title: string; requiresBirthTime: boolean; starCost: number; sortOrder: number };
 export type QuestionAnswer = { directAnswer: string | null; detail: string | null; timing: string | null; caution: string | null; conclusion: string | null };
 export type UserQuestion = { id: string; title: string; status: QuestionStatus; starCost: number; createdAt: string; answer: QuestionAnswer | null };
