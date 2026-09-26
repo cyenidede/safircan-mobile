@@ -14,8 +14,8 @@ export type UserPreferences = {
 };
 
 export const defaultUserPreferences: UserPreferences = {
-  preferredLocale: null,
-  localeSource: 'system',
+  preferredLocale: 'tr',
+  localeSource: 'manual',
   theme: 'system',
   hideLastName: false,
   autoAcceptGroupInvites: false,

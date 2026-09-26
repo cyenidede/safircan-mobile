@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { Appearance, AppState } from 'react-native';
+import { getLocales } from 'expo-localization';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { getPreferences, savePreferences } from '@/features/settings/api';
 import {
@@ -22,10 +23,10 @@ export type { ActiveLocale, LocalePreference, ThemePreference } from '@/features
 
 type Messages = { [K in keyof typeof tr]: { [P in keyof (typeof tr)[K]]: string } };
 const catalogs: Record<ActiveLocale, Messages> = { tr, en };
-const storageKey = 'safircan.preferences.v1';
+const storageKey = 'safircan.preferences.v2';
 
 export function detectSystemLocale(): ActiveLocale {
-  const language = Intl.DateTimeFormat().resolvedOptions().locale.split('-')[0]?.toLowerCase();
+  const language = getLocales()[0]?.languageCode?.toLowerCase();
   return language === 'tr' ? 'tr' : 'en';
 }
 
