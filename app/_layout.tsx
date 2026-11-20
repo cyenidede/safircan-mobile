@@ -34,6 +34,7 @@ function AppShell() {
     <Stack.Screen name="venus-sign" options={{ title: messages.routes.venus, ...authHeader }} />
     <Stack.Screen name="zodiac-compatibility" options={{ title: messages.routes.compatibility, ...authHeader }} />
     <Stack.Screen name="daily-transits" options={{ title: messages.routes.transits, ...authHeader }} />
+    <Stack.Screen name="astro-calendar" options={{ headerShown: false }} />
     <Stack.Screen name="moon-calendar" options={{ title: messages.routes.moonCalendar, ...authHeader }} />
     <Stack.Screen name="ask" options={{ headerShown: false }} />
     <Stack.Screen name="questions/index" options={{ title: messages.routes.questions, ...authHeader }} />

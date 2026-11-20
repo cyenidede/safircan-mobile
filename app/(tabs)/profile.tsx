@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { colors } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useEntitlements } from '@/features/premium/EntitlementProvider';
 import { formatUnreadBadge, useSocialNotifications } from '@/features/social/SocialNotificationProvider';
 import { getCurrentRectification, type RectificationStatus } from '@/features/rectification/api';
 import { useLocale, usePalette } from '@/localization';
@@ -17,6 +18,9 @@ const statusLabels: Record<RectificationStatus, string> = { draft: 'Taslak', sub
 export default function ProfileScreen() {
   const { locale, messages } = useLocale(); const palette=usePalette(); const m=messages.profileMain;
   const { loading, session, signOut, user } = useAuth();
+  const { hasEntitlement, loading: entitlementLoading } = useEntitlements();
+  const calendarAccess = hasEntitlement('full_chart');
+  const calendarUnlocked = __DEV__ || calendarAccess;
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rectificationStatus, setRectificationStatus] = useState<RectificationStatus | null>(null);
@@ -36,7 +40,45 @@ export default function ProfileScreen() {
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toLocaleUpperCase(locale === 'tr' ? 'tr-TR':'en-US') || 'SC';
   const handleSignOut = async () => { if (signingOut) return; setSigningOut(true); setError(null); const result = await signOut(); setSigningOut(false); if (!result.ok) setError(result.message); };
 
-  return <Screen><ProfileHeader signedIn unreadCount={unreadCount} /><View style={[styles.card,{backgroundColor:palette.surface}]}><View style={[styles.avatar,{backgroundColor:palette.sapphireSoft}]}><Text style={styles.avatarText}>{initials}</Text></View><View style={styles.copy}><Text style={[styles.title,{color:palette.navy}]}>{fullName}</Text><Text style={[styles.text,{color:palette.muted}]}>{user.email}</Text></View></View><View style={[styles.entitlement,{backgroundColor:palette.surface,borderColor:palette.border}]}><Text style={[styles.entitlementTitle,{color:palette.navy}]}>{m.membership}</Text><Text style={styles.freeBadge}>{m.free}</Text><Text style={[styles.text,{color:palette.muted}]}>{m.premiumInactive}</Text></View><View style={[styles.entitlement,{backgroundColor:palette.surface,borderColor:palette.border}]}><Text style={[styles.entitlementTitle,{color:palette.navy}]}>{m.rectification}</Text>{statusLoading ? <ActivityIndicator color={palette.sapphire} /> : rectificationStatus ? <><Text style={styles.statusBadge}>{statusLabels[rectificationStatus]}</Text></> : <><Text style={[styles.text,{color:palette.muted}]}>{m.noRectification}</Text><Pressable onPress={() => router.push('/rectification')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>{m.discoverRectification}</Text></Pressable></>}</View>{error ? <Text style={styles.error}>{error}</Text> : null}<Pressable disabled={signingOut} onPress={() => void handleSignOut()} style={({ pressed }) => [styles.signOutButton, (pressed || signingOut) && styles.pressed]}>{signingOut ? <ActivityIndicator color={palette.danger} /> : <Text style={styles.signOutText}>{m.signOut}</Text>}</Pressable><DevPremiumPreviewButton /></Screen>;
+  return <Screen><ProfileHeader signedIn unreadCount={unreadCount} /><View style={[styles.card,{backgroundColor:palette.surface}]}><View style={[styles.avatar,{backgroundColor:palette.sapphireSoft}]}><Text style={styles.avatarText}>{initials}</Text></View><View style={styles.copy}><Text style={[styles.title,{color:palette.navy}]}>{fullName}</Text><Text style={[styles.text,{color:palette.muted}]}>{user.email}</Text></View></View><View style={[styles.entitlement,{backgroundColor:palette.surface,borderColor:palette.border}]}><Text style={[styles.entitlementTitle,{color:palette.navy}]}>{m.membership}</Text><Text style={styles.freeBadge}>{m.free}</Text><Text style={[styles.text,{color:palette.muted}]}>{m.premiumInactive}</Text></View><Pressable
+  accessibilityRole="button"
+  disabled={entitlementLoading}
+  onPress={() => {
+    if (calendarUnlocked) {
+      router.push('/astro-calendar' as Href);
+    } else {
+      router.push({
+        pathname: '/premium',
+        params: { selectedFeature: 'Kişisel Astroloji Takvimin' },
+      });
+    }
+  }}
+  style={({ pressed }) => [
+    styles.entitlement,
+    { backgroundColor: palette.surface, borderColor: palette.border },
+    pressed && styles.pressed,
+  ]}>
+  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+    <View style={{ flex: 1, gap: 8 }}>
+      <Text style={[styles.entitlementTitle,{color:palette.navy}]}>
+        Kişisel Astroloji Takvimin
+      </Text>
+      <Text style={[styles.text,{color:palette.muted}]}>
+        Önündeki 7 ve 30 günün aşk, para, kariyer, iletişim, bakım, saç, sosyal hayat ve seyahat açısından öne çıkan tarihlerini gör.
+      </Text>
+    </View>
+    <View style={{ alignItems: 'center', gap: 6 }}>
+      <Ionicons
+        name={calendarUnlocked ? 'calendar-outline' : 'lock-closed-outline'}
+        size={26}
+        color={palette.sapphire}
+      />
+      {!calendarUnlocked && !entitlementLoading ? (
+        <Text style={styles.freeBadge}>PREMIUM</Text>
+      ) : null}
+    </View>
+  </View>
+</Pressable><View style={[styles.entitlement,{backgroundColor:palette.surface,borderColor:palette.border}]}><Text style={[styles.entitlementTitle,{color:palette.navy}]}>{m.rectification}</Text>{statusLoading ? <ActivityIndicator color={palette.sapphire} /> : rectificationStatus ? <><Text style={styles.statusBadge}>{statusLabels[rectificationStatus]}</Text></> : <><Text style={[styles.text,{color:palette.muted}]}>{m.noRectification}</Text><Pressable onPress={() => router.push('/rectification')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>{m.discoverRectification}</Text></Pressable></>}</View>{error ? <Text style={styles.error}>{error}</Text> : null}<Pressable disabled={signingOut} onPress={() => void handleSignOut()} style={({ pressed }) => [styles.signOutButton, (pressed || signingOut) && styles.pressed]}>{signingOut ? <ActivityIndicator color={palette.danger} /> : <Text style={styles.signOutText}>{m.signOut}</Text>}</Pressable><DevPremiumPreviewButton /></Screen>;
 }
 
 function ProfileHeader({ signedIn = false, unreadCount = 0 }: { signedIn?: boolean; unreadCount?: number }) {
