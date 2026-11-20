@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,6 +12,10 @@ import {
 import { Screen } from '@/components/Screen';
 import { colors } from '@/constants/theme';
 import { useAuth } from '@/features/auth/AuthProvider';
+import {
+  getMonthlyTransits,
+  type MonthlyTransitsResponse,
+} from '@/features/astrology/api/monthly-transits';
 import {
   getWeeklyTransits,
   type WeeklyTransit,
@@ -120,25 +124,40 @@ export default function AstroCalendarScreen() {
   const { loading: authLoading, session } = useAuth();
 
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const todayYear = now.getFullYear();
+  const todayMonth = now.getMonth();
   const today = now.getDate();
+
+  const [viewYear, setViewYear] = useState(todayYear);
+  const [viewMonth, setViewMonth] = useState(todayMonth);
+
+  const year = viewYear;
+  const month = viewMonth;
 
   const [range, setRange] = useState<Range>(7);
   const [selectedDay, setSelectedDay] = useState(today);
   const [state, setState] = useState<ViewState>('loading');
   const [profile, setProfile] = useState<CurrentBirthInput | null>(null);
-  const [result, setResult] = useState<WeeklyTransitsResponse | null>(null);
+  const [result, setResult] = useState<
+    WeeklyTransitsResponse | MonthlyTransitsResponse | null
+  >(null);
+
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async () => {
     if (authLoading) return;
 
+    const requestId = ++requestIdRef.current;
+
     setState('loading');
+    setResult(null);
 
     try {
       const nextProfile = await resolveCurrentBirthProfile(
         session?.access_token,
       );
+
+      if (requestId !== requestIdRef.current) return;
 
       setProfile(nextProfile);
 
@@ -152,18 +171,52 @@ export default function AstroCalendarScreen() {
         return;
       }
 
-      const response = await getWeeklyTransits(nextProfile);
+      const response =
+        range === 30
+          ? await getMonthlyTransits(nextProfile)
+          : await getWeeklyTransits(nextProfile);
+
+      if (requestId !== requestIdRef.current) return;
 
       setResult(response);
       setState('ready');
     } catch {
+      if (requestId !== requestIdRef.current) return;
+
       setState('error');
     }
-  }, [authLoading, session?.access_token]);
+  }, [authLoading, range, session?.access_token]);
 
   useEffect(() => {
     void load();
+
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [load]);
+
+  useEffect(() => {
+    const start = rangeDay(result?.startDate);
+
+    if (!start) return;
+
+    setViewYear(start.year);
+    setViewMonth(start.month);
+
+    const todayInStartMonth =
+      todayYear === start.year &&
+      todayMonth === start.month &&
+      today >= start.day;
+
+    setSelectedDay(
+      todayInStartMonth ? today : start.day,
+    );
+  }, [
+    result?.startDate,
+    today,
+    todayMonth,
+    todayYear,
+  ]);
 
   const calendar = useMemo(() => {
     const first = new Date(year, month, 1);
@@ -248,6 +301,56 @@ export default function AstroCalendarScreen() {
       category !== 'Kişisel' &&
       !(selectedBeautyLabels.length > 0 && category === 'Bakım'),
   );
+
+  const rangeStart = rangeDay(result?.startDate);
+  const rangeEnd = rangeDay(result?.endDate);
+
+  const currentMonthKey = year * 12 + month;
+  const startMonthKey = rangeStart
+    ? rangeStart.year * 12 + rangeStart.month
+    : currentMonthKey;
+  const endMonthKey = rangeEnd
+    ? rangeEnd.year * 12 + rangeEnd.month
+    : currentMonthKey;
+
+  const canGoPreviousMonth =
+    currentMonthKey > startMonthKey;
+  const canGoNextMonth =
+    currentMonthKey < endMonthKey;
+
+  const changeMonth = (delta: -1 | 1) => {
+    const next = new Date(
+      year,
+      month + delta,
+      1,
+    );
+
+    const nextYear = next.getFullYear();
+    const nextMonth = next.getMonth();
+    const nextKey =
+      nextYear * 12 + nextMonth;
+
+    if (
+      nextKey < startMonthKey ||
+      nextKey > endMonthKey
+    ) {
+      return;
+    }
+
+    setViewYear(nextYear);
+    setViewMonth(nextMonth);
+
+    if (
+      rangeStart &&
+      nextYear === rangeStart.year &&
+      nextMonth === rangeStart.month
+    ) {
+      setSelectedDay(rangeStart.day);
+      return;
+    }
+
+    setSelectedDay(1);
+  };
 
   return (
     <Screen>
@@ -341,22 +444,6 @@ export default function AstroCalendarScreen() {
 
       {state === 'ready' ? (
         <>
-          {range === 30 ? (
-            <View
-              style={[
-                styles.notice,
-                { backgroundColor: palette.sapphireSoft },
-              ]}>
-              <Ionicons
-                name="information-circle-outline"
-                size={20}
-                color={palette.sapphire}
-              />
-              <Text style={[styles.noticeText, { color: palette.navy }]}>
-                30 günlük kişisel veri bir sonraki aşamada bağlanacak.
-              </Text>
-            </View>
-          ) : null}
 
           <View
             style={[
@@ -367,15 +454,41 @@ export default function AstroCalendarScreen() {
               },
             ]}>
             <View style={styles.monthRow}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={!canGoPreviousMonth}
+                hitSlop={10}
+                onPress={() => changeMonth(-1)}
+                style={{
+                  opacity: canGoPreviousMonth ? 1 : 0.2,
+                  padding: 6,
+                }}>
+                <Ionicons
+                  name="chevron-back"
+                  size={22}
+                  color={palette.sapphire}
+                />
+              </Pressable>
+
               <Text style={[styles.monthTitle, { color: palette.navy }]}>
                 {MONTHS[month]} {year}
               </Text>
 
-              <Ionicons
-                name="calendar-outline"
-                size={22}
-                color={palette.sapphire}
-              />
+              <Pressable
+                accessibilityRole="button"
+                disabled={!canGoNextMonth}
+                hitSlop={10}
+                onPress={() => changeMonth(1)}
+                style={{
+                  opacity: canGoNextMonth ? 1 : 0.2,
+                  padding: 6,
+                }}>
+                <Ionicons
+                  name="chevron-forward"
+                  size={22}
+                  color={palette.sapphire}
+                />
+              </Pressable>
             </View>
 
             <View style={styles.weekRow}>
@@ -400,7 +513,7 @@ export default function AstroCalendarScreen() {
                 }
 
                 const selected = day === selectedDay;
-                const isToday = day === today;
+                const isToday = day === today && year === todayYear && month === todayMonth;
                 const dayTransits = transitsByDay.get(day) ?? [];
                 const dayCategories = [
                   ...new Set(
